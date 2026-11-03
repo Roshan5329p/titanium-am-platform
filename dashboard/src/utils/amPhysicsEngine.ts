@@ -1386,10 +1386,11 @@ export function calculateAmPredictions(
   const depthOverlapRatio = meltPoolDepthUm / Math.max(1, params.layerThicknessUm);
   const lackOfFusionIndex = 1.35 / Math.max(0.1, depthOverlapRatio);
 
-  // B. Keyhole Ratio: King's normalized enthalpy dH/hs = (eta * P) / (pi * rho * Cp * Tm * sqrt(alpha * v * ds^3))
-  const enthalpyDenominator = Math.PI * props.density * props.specificHeat * props.liquidusC * Math.sqrt(alpha * v_m * Math.pow(ds_m, 3));
+  // B. Keyhole Ratio: King's normalized enthalpy dH/hs = (eta * P) / (pi * rho * Cp * deltaT * sqrt(alpha * v * ds^3))
+  const deltaTEnthalpy = Math.max(100, props.liquidusC - T0);
+  const enthalpyDenominator = Math.PI * props.density * props.specificHeat * deltaTEnthalpy * Math.sqrt(alpha * v_m * Math.pow(ds_m, 3));
   const normalizedEnthalpy = absorbedP / Math.max(1e-6, enthalpyDenominator);
-  const keyholeRatio = normalizedEnthalpy / 28.0; // threshold ~28-30
+  const keyholeRatio = normalizedEnthalpy / 26.0; // King critical threshold = 26.0 (Safe conduction: 8.0 - 26.0)
 
   // C. Balling Ratio: Plateau-Rayleigh cylinder instability: length / width > pi
   const ballingRatio = (meltPoolLengthUm / meltPoolWidthUm) / Math.PI;

@@ -1,5 +1,10 @@
 import React, { useMemo } from 'react';
-import { calculateDefectRegime, DefectAnalysisResult } from '../utils/defectPhysics';
+import {
+  calculateDefectRegime,
+  calculateKeyholePowerBoundary,
+  calculateLofPowerBoundary,
+  DefectAnalysisResult,
+} from '../utils/defectPhysics';
 import { AlertTriangle, CheckCircle2, ShieldAlert, Sparkles, Sliders, Info, Zap } from 'lucide-react';
 
 interface DefectProcessWindowViewProps {
@@ -69,6 +74,101 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
   // Safe operating target point
   const safePower = Math.round((defectData.parameterBoundaries.minConductionPowerW + defectData.parameterBoundaries.maxConductionPowerW) / 2);
   const safeSpeed = Math.round((defectData.parameterBoundaries.minConductionSpeedMmS + defectData.parameterBoundaries.maxConductionSpeedMmS) / 2);
+
+  // Dynamic 2D Process Window Polygons calibrated to active alloy and beam spot
+  const dynamicPolygons = useMemo(() => {
+    const ballingSpeed = 1650;
+    const effectiveBallingSpeed = Math.min(maxSpeed, ballingSpeed);
+    const steps = 14;
+
+    const vSamples: number[] = [];
+    for (let i = 0; i <= steps; i++) {
+      vSamples.push(minSpeed + (i / steps) * (effectiveBallingSpeed - minSpeed));
+    }
+
+    const keyholeCurve = vSamples.map((v) => {
+      const pKey = calculateKeyholePowerBoundary(alloyId, spotDiameterUm, preheatTempC, v);
+      return [v, Math.max(minPower, Math.min(maxPower, pKey))] as [number, number];
+    });
+
+    const lofCurve = vSamples.map((v) => {
+      const pLof = calculateLofPowerBoundary(hatchSpacingUm, layerThicknessUm, v);
+      return [v, Math.max(minPower, Math.min(maxPower, pLof))] as [number, number];
+    });
+
+    // 1. Keyhole Regime: from (minSpeed, maxPower) to (effectiveBallingSpeed, maxPower),
+    // down along keyholeCurve in reverse to (minSpeed, pKey(minSpeed))
+    const keyholePoints = [
+      `${scaleX(minSpeed)},${scaleY(maxPower)}`,
+      `${scaleX(effectiveBallingSpeed)},${scaleY(maxPower)}`,
+      ...[...keyholeCurve].reverse().map(([v, p]) => `${scaleX(v)},${scaleY(p)}`),
+    ].join(' ');
+
+    // 2. Lack of Fusion: along lofCurve to effectiveBallingSpeed, then to maxSpeed,
+    // down to (maxSpeed, minPower) and back to (minSpeed, minPower)
+    const pLofMaxSpeed = Math.max(minPower, Math.min(maxPower, calculateLofPowerBoundary(hatchSpacingUm, layerThicknessUm, maxSpeed)));
+    const lofPoints = [
+      `${scaleX(minSpeed)},${scaleY(minPower)}`,
+      ...lofCurve.map(([v, p]) => `${scaleX(v)},${scaleY(p)}`),
+      `${scaleX(maxSpeed)},${scaleY(pLofMaxSpeed)}`,
+      `${scaleX(maxSpeed)},${scaleY(minPower)}`,
+    ].join(' ');
+
+    // 3. Balling: from effectiveBallingSpeed to maxSpeed
+    const pLofBalling = lofCurve[lofCurve.length - 1][1];
+    const ballingPoints = [
+      `${scaleX(effectiveBallingSpeed)},${scaleY(pLofBalling)}`,
+      `${scaleX(effectiveBallingSpeed)},${scaleY(maxPower)}`,
+      `${scaleX(maxSpeed)},${scaleY(maxPower)}`,
+      `${scaleX(maxSpeed)},${scaleY(pLofMaxSpeed)}`,
+    ].join(' ');
+
+    // 4. Stable Conduction Window: between lofCurve and keyholeCurve
+    const conductionPoints = [
+      ...lofCurve.map(([v, p]) => `${scaleX(v)},${scaleY(p)}`),
+      ...[...keyholeCurve].reverse().map(([v, p]) => `${scaleX(v)},${scaleY(Math.max(p, calculateLofPowerBoundary(hatchSpacingUm, layerThicknessUm, v)))}`),
+    ].join(' ');
+
+    const midIdx = Math.floor(steps / 2);
+    const midSpeed = vSamples[midIdx];
+    const midPKey = keyholeCurve[midIdx][1];
+    const midPLof = lofCurve[midIdx][1];
+
+    return {
+      keyholePoints,
+      lofPoints,
+      ballingPoints,
+      conductionPoints,
+      labelKeyhole: {
+        x: scaleX(minSpeed + 0.12 * (effectiveBallingSpeed - minSpeed)),
+        y: scaleY(Math.min(maxPower - 15, Math.max(minPower + 80, (keyholeCurve[1][1] + maxPower) / 2))),
+      },
+      labelConduction: {
+        x: scaleX(midSpeed - 100),
+        y: scaleY((midPLof + midPKey) / 2),
+      },
+      labelLof: {
+        x: scaleX(midSpeed + 150),
+        y: scaleY(Math.max(minPower + 12, midPLof - 28)),
+      },
+      labelBalling: {
+        x: scaleX(Math.min(maxSpeed - 80, effectiveBallingSpeed + 80)),
+        y: scaleY((minPower + maxPower) / 2),
+      },
+    };
+  }, [
+    alloyId,
+    spotDiameterUm,
+    preheatTempC,
+    hatchSpacingUm,
+    layerThicknessUm,
+    minSpeed,
+    maxSpeed,
+    minPower,
+    maxPower,
+    graphWidth,
+    graphHeight,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -197,12 +297,7 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
 
                 {/* Zone 1: Keyhole Regime (High Power, Low to Moderate Speed) */}
                 <polygon
-                  points={`
-                    ${scaleX(minSpeed)},${scaleY(280)}
-                    ${scaleX(minSpeed)},${scaleY(maxPower)}
-                    ${scaleX(800)},${scaleY(maxPower)}
-                    ${scaleX(500)},${scaleY(420)}
-                  `}
+                  points={dynamicPolygons.keyholePoints}
                   fill="url(#keyholeGrad)"
                   stroke="#ef4444"
                   strokeWidth="1"
@@ -211,13 +306,7 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
 
                 {/* Zone 2: Lack of Fusion (Low Power, High Speed) */}
                 <polygon
-                  points={`
-                    ${scaleX(minSpeed)},${scaleY(minPower)}
-                    ${scaleX(minSpeed)},${scaleY(65)}
-                    ${scaleX(1600)},${scaleY(240)}
-                    ${scaleX(maxSpeed)},${scaleY(280)}
-                    ${scaleX(maxSpeed)},${scaleY(minPower)}
-                  `}
+                  points={dynamicPolygons.lofPoints}
                   fill="url(#lofGrad)"
                   stroke="#f97316"
                   strokeWidth="1"
@@ -226,12 +315,7 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
 
                 {/* Zone 3: Balling (Extreme Speed) */}
                 <polygon
-                  points={`
-                    ${scaleX(1600)},${scaleY(240)}
-                    ${scaleX(1600)},${scaleY(maxPower)}
-                    ${scaleX(maxSpeed)},${scaleY(maxPower)}
-                    ${scaleX(maxSpeed)},${scaleY(280)}
-                  `}
+                  points={dynamicPolygons.ballingPoints}
                   fill="url(#ballingGrad)"
                   stroke="#eab308"
                   strokeWidth="1"
@@ -240,31 +324,24 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
 
                 {/* Zone 4: Stable Conduction Window */}
                 <polygon
-                  points={`
-                    ${scaleX(minSpeed)},${scaleY(65)}
-                    ${scaleX(minSpeed)},${scaleY(280)}
-                    ${scaleX(500)},${scaleY(420)}
-                    ${scaleX(800)},${scaleY(maxPower)}
-                    ${scaleX(1600)},${scaleY(maxPower)}
-                    ${scaleX(1600)},${scaleY(240)}
-                  `}
+                  points={dynamicPolygons.conductionPoints}
                   fill="url(#conductionGrad)"
                   stroke="#10b981"
                   strokeWidth="1.5"
                   strokeOpacity="0.8"
                 />
 
-                {/* Zone Labels */}
-                <text x={scaleX(300)} y={scaleY(420)} fill="#f87171" fontSize="11" fontWeight="bold">
+                {/* Zone Labels (Dynamically positioned inside each physics zone) */}
+                <text x={dynamicPolygons.labelKeyhole.x} y={dynamicPolygons.labelKeyhole.y} fill="#f87171" fontSize="11" fontWeight="bold">
                   KEYHOLING REGIME
                 </text>
-                <text x={scaleX(750)} y={scaleY(300)} fill="#34d399" fontSize="11" fontWeight="bold">
+                <text x={dynamicPolygons.labelConduction.x} y={dynamicPolygons.labelConduction.y} fill="#34d399" fontSize="11" fontWeight="bold">
                   STABLE CONDUCTION WINDOW
                 </text>
-                <text x={scaleX(1100)} y={scaleY(110)} fill="#fb923c" fontSize="10" fontWeight="bold">
+                <text x={dynamicPolygons.labelLof.x} y={dynamicPolygons.labelLof.y} fill="#fb923c" fontSize="10" fontWeight="bold">
                   LACK OF FUSION
                 </text>
-                <text x={scaleX(1850)} y={scaleY(320)} fill="#facc15" fontSize="10" fontWeight="bold">
+                <text x={dynamicPolygons.labelBalling.x} y={dynamicPolygons.labelBalling.y} fill="#facc15" fontSize="10" fontWeight="bold">
                   BALLING
                 </text>
 

@@ -80,17 +80,9 @@ const ALLOY_PHYSICAL_PARAMS: Record<string, AlloyThermalParams> = {
   },
 };
 
-export function calculateDefectRegime(
-  alloyId: string,
-  laserPowerW: number,
-  scanSpeedMmS: number,
-  hatchSpacingUm: number,
-  layerThicknessUm: number,
-  beamSpotDiameterUm: number,
-  preheatTempC = 25
-): DefectAnalysisResult {
+export function getAlloyThermalParams(alloyId: string): AlloyThermalParams {
   const thermalProps = ALLOY_THERMAL_PROPERTIES[alloyId];
-  const params: AlloyThermalParams = thermalProps
+  return thermalProps
     ? {
         absorptivity: thermalProps.laserAbsorptivity || 0.35,
         densityKgM3: thermalProps.density || 4430,
@@ -101,11 +93,47 @@ export function calculateDefectRegime(
           ((thermalProps.density || 4430) * (thermalProps.specificHeat || 526)),
       }
     : ALLOY_PHYSICAL_PARAMS[alloyId] || ALLOY_PHYSICAL_PARAMS['ti-6al-4v'];
+}
+
+export function calculateKeyholePowerBoundary(
+  alloyId: string,
+  beamSpotDiameterUm: number,
+  preheatTempC: number,
+  scanSpeedMmS: number
+): number {
+  const params = getAlloyThermalParams(alloyId);
+  const deltaT = Math.max(100, params.meltingTempC - preheatTempC);
+  const v_m = Math.max(0.01, scanSpeedMmS / 1000);
+  const ds_m = Math.max(10e-6, beamSpotDiameterUm * 1e-6);
+  const denom = Math.PI * params.densityKgM3 * params.specificHeatJPerKgK * deltaT *
+    Math.sqrt(params.thermalDiffusivityM2S * v_m * Math.pow(ds_m, 3));
+  return (26.0 * denom) / params.absorptivity;
+}
+
+export function calculateLofPowerBoundary(
+  hatchSpacingUm: number,
+  layerThicknessUm: number,
+  scanSpeedMmS: number
+): number {
+  return Math.max(50, 45 * scanSpeedMmS * (hatchSpacingUm * 1e-3) * (layerThicknessUm * 1e-3));
+}
+
+export function calculateDefectRegime(
+  alloyId: string,
+  laserPowerW: number,
+  scanSpeedMmS: number,
+  hatchSpacingUm: number,
+  layerThicknessUm: number,
+  beamSpotDiameterUm: number,
+  preheatTempC = 25
+): DefectAnalysisResult {
+  const params = getAlloyThermalParams(alloyId);
 
   // Convert inputs to SI units
   const P = Math.max(10, laserPowerW);
   const v = Math.max(0.01, scanSpeedMmS / 1000); // m/s
-  const sigma = Math.max(10e-6, (beamSpotDiameterUm / 2) * 1e-6); // beam radius in m
+  const ds_m = Math.max(10e-6, beamSpotDiameterUm * 1e-6); // beam diameter in m
+  const sigma = ds_m / 2; // beam radius in m
   const h = Math.max(10e-6, hatchSpacingUm * 1e-6); // m
   const t = Math.max(10e-6, layerThicknessUm * 1e-6); // m
   const deltaT = Math.max(100, params.meltingTempC - preheatTempC);
@@ -113,18 +141,19 @@ export function calculateDefectRegime(
   // Volumetric Energy Density (J/mm^3)
   const ved = (P / ((scanSpeedMmS) * (hatchSpacingUm * 1e-3) * (layerThicknessUm * 1e-3)));
 
-  // King's Normalized Enthalpy: H = (A * P) / (rho * Cp * deltaT * sqrt(pi * alpha * v * sigma^3))
-  const denominator = params.densityKgM3 * params.specificHeatJPerKgK * deltaT *
-    Math.sqrt(Math.PI * params.thermalDiffusivityM2S * v * Math.pow(sigma * 2, 3));
+  // King's Normalized Enthalpy (King et al. 2014, Nature Comm 5:3523):
+  // H = (A * P) / (pi * rho * Cp * deltaT * sqrt(alpha * v * ds^3))
+  // Canonical critical keyhole onset threshold: H_crit = 26.0 (Safe conduction window: 8.0 - 26.0)
+  const denominator = Math.PI * params.densityKgM3 * params.specificHeatJPerKgK * deltaT *
+    Math.sqrt(params.thermalDiffusivityM2S * v * Math.pow(ds_m, 3));
   const normalizedEnthalpy = denominator > 0 ? (params.absorptivity * P) / denominator : 5.0;
 
-  // Approximate Melt Pool Width & Depth (Rosenthal / Eagar-Tsai approximation)
-  // Width scales with sqrt(P / (v * rho * Cp * deltaT))
-  const poolWidthUm = Math.min(600, Math.max(beamSpotDiameterUm * 0.8,
-    Math.sqrt((params.absorptivity * P) / (params.densityKgM3 * params.specificHeatJPerKgK * deltaT * v)) * 1e6 * 0.28
-  ));
+  // Semi-analytical Rosenthal & Eagar-Tsai melt pool dimensions
+  const absorbedP = P * params.absorptivity;
+  const widthScale = Math.sqrt((8 * absorbedP) / (Math.PI * Math.E * params.densityKgM3 * params.specificHeatJPerKgK * deltaT * v));
+  const poolWidthUm = Math.min(800, Math.max(beamSpotDiameterUm * 0.5, widthScale * 1e6 * 0.75 + beamSpotDiameterUm * 0.4));
 
-  // King's Normalized Enthalpy Keyhole Threshold for Ti-6Al-4V (King et al. 2014 Nature Comm: ΔH/hs > 26–28)
+  // King's Normalized Enthalpy Keyhole Threshold for Ti-6Al-4V (King et al. 2014: ΔH/hs > 26–28)
   const keyholeThreshold = 26.0;
 
   // Depth in conduction mode vs keyholing
@@ -135,11 +164,12 @@ export function calculateDefectRegime(
     poolDepthUm = poolWidthUm * (0.65 + 0.045 * excess);
   } else {
     // Conduction mode: shallow, stable melt track (aspect ratio 0.35 to 0.55)
-    const conductionProgress = Math.min(1, Math.max(0, (normalizedEnthalpy - 6.0) / (keyholeThreshold - 6.0)));
-    poolDepthUm = poolWidthUm * (0.35 + 0.18 * conductionProgress);
+    const optVed = 70;
+    const baseDepth = poolWidthUm * 0.52 * Math.pow(Math.max(0.05, ved / optVed), 0.25);
+    poolDepthUm = Math.max(layerThicknessUm * 0.2, baseDepth);
   }
 
-  const aspectRatio = poolWidthUm > 0 ? poolDepthUm / poolWidthUm : 0.42;
+  const aspectRatio = poolWidthUm > 0 ? poolDepthUm / poolWidthUm : 0.52;
 
   // Linear Energy Density (J/mm)
   const linearEnergyJPerMm = P / scanSpeedMmS;
@@ -219,10 +249,18 @@ export function calculateDefectRegime(
       ));
 
   // Safe operating boundaries for conduction mode for this alloy
-  const minConductionSpeed = Math.round(Math.max(400, P * 2.2));
-  const maxConductionSpeed = Math.round(Math.min(1600, P * 4.8));
-  const minConductionPower = Math.round(Math.max(100, scanSpeedMmS * 0.20));
-  const maxConductionPower = Math.round(Math.min(420, scanSpeedMmS * 0.35));
+  const minConductionPower = Math.round(calculateLofPowerBoundary(hatchSpacingUm, layerThicknessUm, scanSpeedMmS));
+  const maxConductionPower = Math.round(calculateKeyholePowerBoundary(alloyId, beamSpotDiameterUm, preheatTempC, scanSpeedMmS));
+
+  // Speed boundaries at current laser power P:
+  const denomNoV = Math.PI * params.densityKgM3 * params.specificHeatJPerKgK * deltaT *
+    Math.sqrt(params.thermalDiffusivityM2S * Math.pow(ds_m, 3));
+  const minConductionSpeed = Math.round(
+    Math.max(200, Math.min(2000, 1000 * Math.pow((params.absorptivity * P) / (26.0 * denomNoV), 2)))
+  );
+  const maxConductionSpeed = Math.round(
+    Math.max(minConductionSpeed + 100, Math.min(1650, P / (45 * (hatchSpacingUm * 1e-3) * (layerThicknessUm * 1e-3))))
+  );
 
   return {
     regime,
