@@ -33,7 +33,9 @@ import {
   Maximize2,
   Ruler,
   Crosshair,
-  Grid
+  Grid,
+  ShieldAlert,
+  DollarSign
 } from 'lucide-react';
 import {
   calculateAmPredictions,
@@ -59,8 +61,19 @@ import {
   getBonthaDimensionlessProcessMapData
 } from '../utils/amPhysicsEngine';
 import { LiteratureIntelligenceView } from './LiteratureIntelligenceView';
+import { DefectProcessWindowView } from './DefectProcessWindowView';
+import { IndustrialEconomicsView } from './IndustrialEconomicsView';
 
-export type ActiveTab = 'predictions' | 'process-map' | 'suggestions' | 'melt-pool' | 'accuracy' | 'literature-intel' | 'references';
+export type ActiveTab =
+  | 'predictions'
+  | 'process-map'
+  | 'defect-map'
+  | 'economics'
+  | 'suggestions'
+  | 'melt-pool'
+  | 'accuracy'
+  | 'literature-intel'
+  | 'references';
 
 export interface MatSciPredictorProps {
   initialAlloyId?: string;
@@ -1408,6 +1421,36 @@ export function MatSciPredictor({
               </button>
 
               <button
+                onClick={() => setActiveTab('defect-map')}
+                className={`px-4 py-2.5 rounded-t-lg transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
+                  activeTab === 'defect-map'
+                    ? 'bg-[#141b24] text-[#50d8e9] border-t-2 border-[#50d8e9] font-bold shadow-md'
+                    : 'text-[#879bb1] hover:text-white hover:bg-[#12161f]'
+                }`}
+              >
+                <ShieldAlert className="w-4 h-4 text-amber-400" />
+                <span>Defect Process Window</span>
+                <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-mono font-bold">
+                  Enthalpy
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('economics')}
+                className={`px-4 py-2.5 rounded-t-lg transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
+                  activeTab === 'economics'
+                    ? 'bg-[#141b24] text-[#50d8e9] border-t-2 border-[#50d8e9] font-bold shadow-md'
+                    : 'text-[#879bb1] hover:text-white hover:bg-[#12161f]'
+                }`}
+              >
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+                <span>Build Economics &amp; ESG</span>
+                <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold">
+                  ROI
+                </span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab('suggestions')}
                 className={`px-4 py-2.5 rounded-t-lg transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
                   activeTab === 'suggestions'
@@ -2477,6 +2520,37 @@ export function MatSciPredictor({
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* TAB: DEFECT PROCESS WINDOW */}
+            {activeTab === 'defect-map' && (
+              <DefectProcessWindowView
+                alloyId={selectedAlloyId}
+                alloyName={TITANIUM_ALLOYS.find(a => a.id === selectedAlloyId)?.name || selectedAlloyId}
+                laserPowerW={laserPower}
+                scanSpeedMmS={scanSpeed}
+                hatchSpacingUm={hatchSpacing}
+                layerThicknessUm={layerThickness}
+                spotDiameterUm={spotDiameter}
+                preheatTempC={preheatTemp}
+                onApplySafeParameters={(pwr, spd) => {
+                  setLaserPower(pwr);
+                  setScanSpeed(spd);
+                }}
+              />
+            )}
+
+            {/* TAB: INDUSTRIAL ECONOMICS & ESG */}
+            {activeTab === 'economics' && (
+              <IndustrialEconomicsView
+                alloyId={selectedAlloyId}
+                alloyName={TITANIUM_ALLOYS.find(a => a.id === selectedAlloyId)?.name || selectedAlloyId}
+                processId={selectedProcessId}
+                laserPowerW={laserPower}
+                scanSpeedMmS={scanSpeed}
+                hatchSpacingUm={hatchSpacing}
+                layerThicknessUm={layerThickness}
+              />
             )}
 
             {/* TAB 3: SUGGESTIONS & INVERSE DESIGN matching Image 2 */}

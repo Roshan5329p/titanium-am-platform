@@ -75,6 +75,26 @@ export default function App() {
             </button>
             <button
               onClick={() => {
+                setActivePredictorTab('defect-map');
+                handleScrollToSection('physics-predictor');
+              }}
+              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
+            >
+              <span>Defect Window</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono">Enthalpy</span>
+            </button>
+            <button
+              onClick={() => {
+                setActivePredictorTab('economics');
+                handleScrollToSection('physics-predictor');
+              }}
+              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
+            >
+              <span>Build Economics</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">ROI</span>
+            </button>
+            <button
+              onClick={() => {
                 setActivePredictorTab('literature-intel');
                 handleScrollToSection('physics-predictor');
               }}
@@ -149,6 +169,28 @@ export default function App() {
             >
               <span>Physics Predictor</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#50d8e9]/20 text-[#50d8e9] font-mono">v2.0</span>
+            </button>
+            <button
+              onClick={() => {
+                setActivePredictorTab('defect-map');
+                handleScrollToSection('physics-predictor');
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 px-3 rounded-lg text-sm text-amber-300 hover:bg-amber-500/10 font-medium transition-colors flex items-center justify-between"
+            >
+              <span>Defect Process Window</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono">Enthalpy</span>
+            </button>
+            <button
+              onClick={() => {
+                setActivePredictorTab('economics');
+                handleScrollToSection('physics-predictor');
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 px-3 rounded-lg text-sm text-emerald-300 hover:bg-emerald-500/10 font-medium transition-colors flex items-center justify-between"
+            >
+              <span>Build Economics &amp; ESG</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">ROI</span>
             </button>
             <button
               onClick={() => {
