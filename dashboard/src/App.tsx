@@ -95,6 +95,26 @@ export default function App() {
             </button>
             <button
               onClick={() => {
+                setActivePredictorTab('digital-twin');
+                handleScrollToSection('physics-predictor');
+              }}
+              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
+            >
+              <span>3D Digital Twin</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-[#50d8e9] font-mono">Tensor</span>
+            </button>
+            <button
+              onClick={() => {
+                setActivePredictorTab('qualification');
+                handleScrollToSection('physics-predictor');
+              }}
+              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
+            >
+              <span>ASTM Qualification</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono">Audit</span>
+            </button>
+            <button
+              onClick={() => {
                 setActivePredictorTab('literature-intel');
                 handleScrollToSection('physics-predictor');
               }}
@@ -191,6 +211,28 @@ export default function App() {
             >
               <span>Build Economics &amp; ESG</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">ROI</span>
+            </button>
+            <button
+              onClick={() => {
+                setActivePredictorTab('digital-twin');
+                handleScrollToSection('physics-predictor');
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 px-3 rounded-lg text-sm text-cyan-300 hover:bg-cyan-500/10 font-medium transition-colors flex items-center justify-between"
+            >
+              <span>3D Digital Twin</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-[#50d8e9] font-mono">Tensor</span>
+            </button>
+            <button
+              onClick={() => {
+                setActivePredictorTab('qualification');
+                handleScrollToSection('physics-predictor');
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 px-3 rounded-lg text-sm text-amber-300 hover:bg-amber-500/10 font-medium transition-colors flex items-center justify-between"
+            >
+              <span>ASTM Qualification</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono">Audit</span>
             </button>
             <button
               onClick={() => {

@@ -35,7 +35,9 @@ import {
   Crosshair,
   Grid,
   ShieldAlert,
-  DollarSign
+  DollarSign,
+  Box,
+  Award
 } from 'lucide-react';
 import {
   calculateAmPredictions,
@@ -63,12 +65,17 @@ import {
 import { LiteratureIntelligenceView } from './LiteratureIntelligenceView';
 import { DefectProcessWindowView } from './DefectProcessWindowView';
 import { IndustrialEconomicsView } from './IndustrialEconomicsView';
+import { QualificationAuditView } from './QualificationAuditView';
+import { DigitalTwin3DView } from './DigitalTwin3DView';
+import { MatSciCopilotDrawer } from './MatSciCopilotDrawer';
 
 export type ActiveTab =
   | 'predictions'
   | 'process-map'
   | 'defect-map'
   | 'economics'
+  | 'digital-twin'
+  | 'qualification'
   | 'suggestions'
   | 'melt-pool'
   | 'accuracy'
@@ -309,6 +316,7 @@ export function MatSciPredictor({
     setInternalActiveTab(tab);
     onTabChange?.(tab);
   };
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
 
   // Bontha et al. (2006 JMPT & 2009 MSEA) & KU Leuven (Coen et al. 2022) Melt Pool State
@@ -1451,6 +1459,36 @@ export function MatSciPredictor({
               </button>
 
               <button
+                onClick={() => setActiveTab('digital-twin')}
+                className={`px-4 py-2.5 rounded-t-lg transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
+                  activeTab === 'digital-twin'
+                    ? 'bg-[#141b24] text-[#50d8e9] border-t-2 border-[#50d8e9] font-bold shadow-md'
+                    : 'text-[#879bb1] hover:text-white hover:bg-[#12161f]'
+                }`}
+              >
+                <Box className="w-4 h-4 text-cyan-400" />
+                <span>3D Digital Twin</span>
+                <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-[#50d8e9] text-[10px] font-mono font-bold">
+                  Tensor
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('qualification')}
+                className={`px-4 py-2.5 rounded-t-lg transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
+                  activeTab === 'qualification'
+                    ? 'bg-[#141b24] text-[#50d8e9] border-t-2 border-[#50d8e9] font-bold shadow-md'
+                    : 'text-[#879bb1] hover:text-white hover:bg-[#12161f]'
+                }`}
+              >
+                <Award className="w-4 h-4 text-amber-400" />
+                <span>ASTM Qualification</span>
+                <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[10px] font-mono font-bold">
+                  Audit
+                </span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab('suggestions')}
                 className={`px-4 py-2.5 rounded-t-lg transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
                   activeTab === 'suggestions'
@@ -1511,6 +1549,16 @@ export function MatSciPredictor({
               >
                 <Info className="w-4 h-4" />
                 <span>Data, models &amp; references</span>
+              </button>
+
+              {/* MatSci AM Metallurgy Copilot Launcher */}
+              <button
+                onClick={() => setIsCopilotOpen(true)}
+                className="ml-auto px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 text-[#50d8e9] hover:text-white border border-[#50d8e9]/40 hover:border-[#50d8e9] font-bold text-xs flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(80,216,233,0.15)] shrink-0 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#50d8e9]" />
+                <span>MatSci AM Copilot</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
               </button>
             </div>
 
@@ -2550,6 +2598,34 @@ export function MatSciPredictor({
                 scanSpeedMmS={scanSpeed}
                 hatchSpacingUm={hatchSpacing}
                 layerThicknessUm={layerThickness}
+              />
+            )}
+
+            {/* TAB: 3D DIGITAL TWIN & STRESS TENSOR */}
+            {activeTab === 'digital-twin' && (
+              <DigitalTwin3DView
+                alloyName={TITANIUM_ALLOYS.find(a => a.id === selectedAlloyId)?.name || selectedAlloyId}
+                laserPowerW={laserPower}
+                scanSpeedMmS={scanSpeed}
+                coolingRateKPerS={prediction.coolingRateKs}
+                residualStressMPa={heatTreatment === 'None' || heatTreatment === 'As-built' ? 380 : heatTreatment === 'Stress-relieved' ? 35 : heatTreatment === 'HIP' ? 15 : 45}
+                hardnessHV={prediction.hybridHardnessHV}
+                elongationPct={heatTreatment === 'HIP' ? 13.8 : heatTreatment === 'Annealed' || heatTreatment === 'Stress-relieved' ? 11.2 : heatTreatment === 'Solution-Aged' ? 10.5 : 7.4}
+              />
+            )}
+
+            {/* TAB: AEROSPACE & MEDICAL QUALIFICATION */}
+            {activeTab === 'qualification' && (
+              <QualificationAuditView
+                alloyId={selectedAlloyId}
+                alloyName={TITANIUM_ALLOYS.find(a => a.id === selectedAlloyId)?.name || selectedAlloyId}
+                yieldStrengthMPa={Math.round(prediction.estimatedUTSMPa * 0.91)}
+                utsMPa={prediction.estimatedUTSMPa}
+                elongationPct={heatTreatment === 'HIP' ? 13.8 : heatTreatment === 'Annealed' || heatTreatment === 'Stress-relieved' ? 11.2 : heatTreatment === 'Solution-Aged' ? 10.5 : 7.4}
+                relativeDensityPct={prediction.relativeDensityPct}
+                residualStressMPa={heatTreatment === 'None' || heatTreatment === 'As-built' ? 380 : heatTreatment === 'Stress-relieved' ? 35 : heatTreatment === 'HIP' ? 15 : 45}
+                fatigueEnduranceMPa={Math.round(prediction.estimatedUTSMPa * 0.58) + (heatTreatment === 'HIP' ? 80 : 0)}
+                heatTreatmentRoute={heatTreatment}
               />
             )}
 
@@ -5353,6 +5429,20 @@ export function MatSciPredictor({
         </div>
 
       </div>
+
+      {/* MatSci AM Metallurgy Copilot Assistant */}
+      <MatSciCopilotDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        activeAlloyName={TITANIUM_ALLOYS.find(a => a.id === selectedAlloyId)?.name || selectedAlloyId}
+        onApplyParameters={(params) => {
+          if (params.laserPowerW !== undefined) setLaserPower(params.laserPowerW);
+          if (params.scanSpeedMmS !== undefined) setScanSpeed(params.scanSpeedMmS);
+          if (params.hatchSpacingUm !== undefined) setHatchSpacing(params.hatchSpacingUm);
+          if (params.layerThicknessUm !== undefined) setLayerThickness(params.layerThicknessUm);
+          if (params.preheatTempC !== undefined) setPreheatTemp(params.preheatTempC);
+        }}
+      />
     </section>
   );
 }
