@@ -127,33 +127,92 @@ interface HeatTreatmentStage {
   name: string;
   category: 'As-Built' | 'Stress-Relief' | 'HIP' | 'Solution-Age' | 'Annealing';
   tempC: number;
+  secondaryTempC?: number; // Chamber preheat for As-Built, Aging temp for STA
   durationHours: number;
   pressureBar: number;
   atmosphere: string;
   coolingMethod: 'Water Quench' | 'Air Cool' | 'Furnace Cool' | 'Rapid Inert Gas';
-  yieldModPct: number;
-  utsModPct: number;
-  elongationModPct: number;
-  residualStressRedPct: number;
-  fatigueLifeBoostPct: number;
   description: string;
 }
+
+interface AlloyRouteBaselines {
+  name: string;
+  baseYield: number;
+  baseUTS: number;
+  baseElongation: number;
+  baseResidualStress: number;
+  baseFatigue: number;
+  betaTransusC: number;
+}
+
+const ALLOY_ROUTE_BASELINES: Record<string, AlloyRouteBaselines> = {
+  'ti-6al-4v': {
+    name: 'Ti-6Al-4V (Grade 5)',
+    baseYield: 1060,
+    baseUTS: 1180,
+    baseElongation: 7.2,
+    baseResidualStress: 520,
+    baseFatigue: 380,
+    betaTransusC: 995,
+  },
+  'ti-6al-4v-eli': {
+    name: 'Ti-6Al-4V ELI (Grade 23)',
+    baseYield: 990,
+    baseUTS: 1100,
+    baseElongation: 9.8,
+    baseResidualStress: 490,
+    baseFatigue: 395,
+    betaTransusC: 985,
+  },
+  'ti-6242': {
+    name: 'Ti-6242 (High-Temp Creep)',
+    baseYield: 1120,
+    baseUTS: 1240,
+    baseElongation: 6.2,
+    baseResidualStress: 560,
+    baseFatigue: 410,
+    betaTransusC: 1010,
+  },
+  'ti-5553': {
+    name: 'Ti-5553 (Near-Beta High Strength)',
+    baseYield: 1250,
+    baseUTS: 1380,
+    baseElongation: 5.0,
+    baseResidualStress: 620,
+    baseFatigue: 430,
+    betaTransusC: 860,
+  },
+  'ti-grade-2': {
+    name: 'Ti Grade 2 (CP Unalloyed)',
+    baseYield: 410,
+    baseUTS: 520,
+    baseElongation: 22.0,
+    baseResidualStress: 280,
+    baseFatigue: 240,
+    betaTransusC: 882,
+  },
+  'ti-48al-2cr-2nb': {
+    name: 'Gamma TiAl (Intermetallic)',
+    baseYield: 550,
+    baseUTS: 680,
+    baseElongation: 1.8,
+    baseResidualStress: 650,
+    baseFatigue: 310,
+    betaTransusC: 1320,
+  },
+};
 
 const DEFAULT_STAGES: HeatTreatmentStage[] = [
   {
     id: 'stage-1',
     name: '1. Primary AM Deposition (As-Built)',
     category: 'As-Built',
-    tempC: 1660,
+    tempC: 1650,
+    secondaryTempC: 150,
     durationHours: 0.05,
     pressureBar: 1,
     atmosphere: 'Ultra-Pure Argon (99.999%)',
     coolingMethod: 'Rapid Inert Gas',
-    yieldModPct: 0,
-    utsModPct: 0,
-    elongationModPct: 0,
-    residualStressRedPct: 0,
-    fatigueLifeBoostPct: 0,
     description: 'Rapid solidification from liquid melt pool; high dislocation density and metastable acicular alpha prime.'
   },
   {
@@ -165,11 +224,6 @@ const DEFAULT_STAGES: HeatTreatmentStage[] = [
     pressureBar: 1,
     atmosphere: 'Industrial Vacuum (10^-4 mbar)',
     coolingMethod: 'Furnace Cool',
-    yieldModPct: -3,
-    utsModPct: -2,
-    elongationModPct: +25,
-    residualStressRedPct: 78,
-    fatigueLifeBoostPct: 15,
     description: 'Relieves residual macroscopic thermal shrinkage stress without inducing significant grain coarsening.'
   },
   {
@@ -181,11 +235,6 @@ const DEFAULT_STAGES: HeatTreatmentStage[] = [
     pressureBar: 1200,
     atmosphere: 'High-Purity Argon High-Pressure',
     coolingMethod: 'Furnace Cool',
-    yieldModPct: -8,
-    utsModPct: -6,
-    elongationModPct: +65,
-    residualStressRedPct: 95,
-    fatigueLifeBoostPct: 45,
     description: 'Collapses internal lack-of-fusion and gas pores via plastic yield and creep; dramatically boosts fatigue life.'
   },
   {
@@ -193,15 +242,11 @@ const DEFAULT_STAGES: HeatTreatmentStage[] = [
     name: '4. Solution Treatment & Aging (STA)',
     category: 'Solution-Age',
     tempC: 945,
-    durationHours: 1.0,
+    secondaryTempC: 520,
+    durationHours: 4.0,
     pressureBar: 1,
     atmosphere: 'High-Purity Argon',
     coolingMethod: 'Water Quench',
-    yieldModPct: +14,
-    utsModPct: +12,
-    elongationModPct: -15,
-    residualStressRedPct: 80,
-    fatigueLifeBoostPct: 35,
     description: 'Precipitates ultra-fine secondary alpha needles inside retained beta phase for peak yield and fatigue threshold.'
   }
 ];
@@ -314,36 +359,231 @@ export function MatSciCommandSections({
     );
   };
 
-  // Cumulative Route Mechanical Impact
+  const updateStageSecondaryTemp = (stageId: string, newTemp: number) => {
+    setStagesConfig((prev) =>
+      prev.map((s) => (s.id === stageId ? { ...s, secondaryTempC: newTemp } : s))
+    );
+  };
+
+  const updateStagePressure = (stageId: string, newPressure: number) => {
+    setStagesConfig((prev) =>
+      prev.map((s) => (s.id === stageId ? { ...s, pressureBar: newPressure } : s))
+    );
+  };
+
+  const updateStageDuration = (stageId: string, newDuration: number) => {
+    setStagesConfig((prev) =>
+      prev.map((s) => (s.id === stageId ? { ...s, durationHours: newDuration } : s))
+    );
+  };
+
+  // Sync Stage 1 with Section 1 Thermal Telemetry
+  const syncStage1FromTelemetry = () => {
+    setStagesConfig((prev) =>
+      prev.map((s) =>
+        s.id === 'stage-1'
+          ? {
+              ...s,
+              tempC: Math.min(2200, Math.max(1400, thermalTelemetry.T_peak)),
+              secondaryTempC: preheatTempC
+            }
+          : s
+      )
+    );
+    setSelectedRouteAlloy(selectedAlloyId);
+  };
+
+  // Cumulative Physical Metallurgy & Synthesis Route Impact
   const routeImpact = useMemo(() => {
-    const baseUTS = alloyConstants.nominalUTS;
-    const baseYield = Math.round(baseUTS * 0.91);
-    const baseElongation = 7.5; // Typical as-built L-PBF %
-    let residualStressMPa = 480;
-    let fatigueStrengthMPa = 380;
+    const alloy = ALLOY_ROUTE_BASELINES[selectedRouteAlloy] || ALLOY_ROUTE_BASELINES['ti-6al-4v'];
+    const T_beta = alloy.betaTransusC;
 
-    let curYield = baseYield;
-    let curUTS = baseUTS;
-    let curElongation = baseElongation;
+    const s1 = stagesConfig.find((s) => s.id === 'stage-1') || DEFAULT_STAGES[0];
+    const s2 = stagesConfig.find((s) => s.id === 'stage-2') || DEFAULT_STAGES[1];
+    const s3 = stagesConfig.find((s) => s.id === 'stage-3') || DEFAULT_STAGES[2];
+    const s4 = stagesConfig.find((s) => s.id === 'stage-4') || DEFAULT_STAGES[3];
 
-    stagesConfig.forEach((stage) => {
-      if (enabledStages[stage.id]) {
-        curYield = Math.round(curYield * (1 + stage.yieldModPct / 100));
-        curUTS = Math.round(curUTS * (1 + stage.utsModPct / 100));
-        curElongation = Number((curElongation * (1 + stage.elongationModPct / 100)).toFixed(1));
-        residualStressMPa = Math.round(residualStressMPa * (1 - stage.residualStressRedPct / 100));
-        fatigueStrengthMPa = Math.round(fatigueStrengthMPa * (1 + stage.fatigueLifeBoostPct / 100));
+    const s1Enabled = enabledStages['stage-1'];
+    const s2Enabled = enabledStages['stage-2'];
+    const s3Enabled = enabledStages['stage-3'];
+    const s4Enabled = enabledStages['stage-4'];
+
+    // Stage 1: Deposition (As-Built starting state)
+    let curYield = alloy.baseYield;
+    let curUTS = alloy.baseUTS;
+    let curElongation = alloy.baseElongation;
+    let residualStress = alloy.baseResidualStress;
+    let fatigueLimit = alloy.baseFatigue;
+
+    let s1Notes = '';
+    if (s1Enabled) {
+      const meltTemp = s1.tempC; // 1400 - 2200, default 1650
+      const preheatTemp = s1.secondaryTempC ?? 150; // 25 - 650, default 150
+
+      // Higher melt temp = higher thermal shock and dislocation density
+      const deltaMelt = meltTemp - 1650;
+      residualStress += deltaMelt * 0.18;
+      curYield += deltaMelt * 0.04;
+      curUTS += deltaMelt * 0.04;
+
+      // Higher substrate preheat provides in-situ tempering during build
+      const preheatReliefRatio = Math.min(0.68, Math.max(0, ((preheatTemp - 25) / (650 - 25)) * 0.68));
+      residualStress = Math.round(residualStress * (1 - preheatReliefRatio));
+      curElongation += (preheatTemp - 25) * 0.005;
+      curYield -= (preheatTemp - 25) * 0.08;
+      curUTS -= (preheatTemp - 25) * 0.07;
+
+      s1Notes = `As-built melt pool at ${meltTemp}°C with ${preheatTemp}°C preheat; residual stress initialized at ${Math.round(residualStress)} MPa.`;
+    }
+
+    // Stage 2: Stress-Relief Anneal
+    let s2ReliefPct = 0;
+    let s2Notes = '';
+    if (s2Enabled) {
+      const srTemp = s2.tempC; // 450 to 1050
+      const srTime = s2.durationHours; // 0.5 to 6.0
+
+      // Residual stress relaxation kinetics:
+      const reliefFrac = Math.min(
+        0.98,
+        Math.max(0.15, 1 - Math.exp(-Math.pow(srTemp / 575, 4.2) * (Math.pow(srTime, 0.22) / 2.6)))
+      );
+      s2ReliefPct = Math.round(reliefFrac * 100);
+      residualStress = Math.round(residualStress * (1 - reliefFrac));
+
+      // Microstructural changes & coarsening:
+      if (srTemp <= 600) {
+        curYield -= 15 * (srTemp / 600);
+        curUTS -= 12 * (srTemp / 600);
+        curElongation += 0.8 * (srTemp / 600);
+        s2Notes = `Low-temperature stress relief (${srTemp}°C): dislocation recovery without significant softening.`;
+      } else if (srTemp <= 750) {
+        const tFactor = (srTemp - 600) / (750 - 600);
+        curYield -= (20 + 35 * tFactor);
+        curUTS -= (18 + 30 * tFactor);
+        curElongation += (1.0 + 2.2 * tFactor);
+        s2Notes = `Standard stress relief (${srTemp}°C, ${srTime}h): decomposed α' martensite into fine α+β.`;
+      } else if (srTemp <= T_beta) {
+        const tFactor = (srTemp - 750) / (T_beta - 750);
+        const timeFactor = Math.pow(srTime / 2.5, 0.25);
+        curYield -= (55 + 130 * tFactor * timeFactor);
+        curUTS -= (50 + 115 * tFactor * timeFactor);
+        curElongation += (3.2 + 4.5 * tFactor);
+        s2Notes = `Near-transus high anneal (${srTemp}°C): extensive lamellar coarsening (+${(3.2 + 4.5 * tFactor).toFixed(1)}% elongation).`;
+      } else {
+        const superDelta = Math.min(60, srTemp - T_beta);
+        curYield -= (185 + superDelta * 0.5);
+        curUTS -= (165 + superDelta * 0.4);
+        curElongation -= (1.5 + superDelta * 0.05);
+        s2Notes = `Super-transus anneal (${srTemp}°C > T_beta ${T_beta}°C): continuous grain boundary α reduced ductility.`;
       }
-    });
+
+      fatigueLimit += Math.round(35 * reliefFrac);
+    }
+
+    // Stage 3: Hot Isostatic Pressing (HIP Cycle)
+    let s3ClosurePct = 0;
+    let s3Notes = '';
+    if (s3Enabled) {
+      const hipTemp = s3.tempC; // 750 to 1100, default 920
+      const hipPress = s3.pressureBar; // 200 to 2000, default 1200
+      const hipTime = s3.durationHours; // 1.0 to 5.0
+
+      // Defect closure kinetics via plastic yield + Coble creep
+      const pressFrac = Math.pow(hipPress / 1200, 0.55);
+      const tempFrac = Math.pow(hipTemp / 920, 2.5);
+      const timeFrac = Math.pow(hipTime / 2.0, 0.25);
+      const closureRatio = Math.min(0.998, Math.max(0.20, pressFrac * tempFrac * timeFrac));
+      s3ClosurePct = Number((closureRatio * 100).toFixed(1));
+
+      // Fatigue endurance jump from micro-pore closure
+      const targetMaxFatigue = Math.round(alloy.baseFatigue * 2.26); // e.g. 380 -> 858 MPa
+      const fatigueBoost = Math.round((targetMaxFatigue - fatigueLimit) * closureRatio);
+      fatigueLimit += fatigueBoost;
+
+      // Hydrostatic pressure relaxes residual stress to near-zero
+      residualStress = Math.max(12, Math.round(residualStress * (1 - 0.95 * closureRatio)));
+
+      if (hipTemp <= T_beta) {
+        const tempRatio = (hipTemp - 750) / (T_beta - 750);
+        curYield = Math.round(curYield - 65 * tempRatio);
+        curUTS = Math.round(curUTS - 55 * tempRatio);
+        curElongation = Math.min(18.5, curElongation + 4.5 * closureRatio);
+        s3Notes = `HIP at ${hipTemp}°C / ${hipPress} bar: healed ${s3ClosurePct}% of pores (+${fatigueBoost} MPa fatigue endurance).`;
+      } else {
+        const superDelta = hipTemp - T_beta;
+        curYield -= (90 + superDelta * 0.4);
+        curUTS -= (80 + superDelta * 0.3);
+        curElongation = Math.max(7.0, curElongation - 3.5);
+        s3Notes = `Super-transus HIP (${hipTemp}°C): healed pores, but prior-β grain coarsening lowered yield strength.`;
+      }
+    }
+
+    // Stage 4: Solution Treatment & Aging (STA)
+    let s4YieldBoost = 0;
+    let s4Notes = '';
+    if (s4Enabled) {
+      const solTemp = s4.tempC; // 800 to 1050
+      const ageTemp = s4.secondaryTempC ?? 520; // 450 to 620
+      const ageTime = s4.durationHours; // 1.0 to 8.0
+
+      let solEfficiency = 0;
+      if (solTemp <= T_beta) {
+        solEfficiency = Math.min(1.0, Math.max(0.1, (solTemp - 780) / (Math.min(955, T_beta) - 780)));
+      } else {
+        solEfficiency = 1.05;
+      }
+
+      const ageEfficiency = Math.exp(-Math.pow((ageTemp - 520) / 65, 2));
+      const timeFactor = Math.pow(ageTime / 4.0, 0.18);
+
+      s4YieldBoost = Math.round(165 * solEfficiency * ageEfficiency * timeFactor);
+      const utsBoost = Math.round(150 * solEfficiency * ageEfficiency * timeFactor);
+
+      curYield += s4YieldBoost;
+      curUTS += utsBoost;
+
+      const ductilityDrop = Number((3.2 * solEfficiency * ageEfficiency).toFixed(1));
+      curElongation = Math.max(4.0, curElongation - ductilityDrop);
+      fatigueLimit += Math.round(45 * solEfficiency * ageEfficiency);
+
+      s4Notes = `STA (${solTemp}°C solution + ${ageTemp}°C aging): precipitated fine secondary αs (+${s4YieldBoost} MPa yield).`;
+    }
+
+    const finalYield = Math.max(250, Math.round(curYield));
+    const finalUTS = Math.max(finalYield + 35, Math.round(curUTS));
+    const finalElongation = Number(Math.max(1.5, Math.min(30, curElongation)).toFixed(1));
+    const finalResidualStress = Math.max(12, Math.round(residualStress));
+    const finalFatigue = Math.max(180, Math.round(fatigueLimit));
+
+    const deltaYield = finalYield - alloy.baseYield;
+    const deltaUTS = finalUTS - alloy.baseUTS;
+    const deltaElongation = Number((finalElongation - alloy.baseElongation).toFixed(1));
 
     return {
-      yieldStrengthMPa: curYield,
-      utsMPa: curUTS,
-      elongationPct: curElongation,
-      residualStressMPa: Math.max(15, residualStressMPa),
-      fatigueStrengthMPa
+      yieldStrengthMPa: finalYield,
+      utsMPa: finalUTS,
+      elongationPct: finalElongation,
+      residualStressMPa: finalResidualStress,
+      fatigueStrengthMPa: finalFatigue,
+      deltaYield,
+      deltaUTS,
+      deltaElongation,
+      stressReliefPct: Math.round(((alloy.baseResidualStress - finalResidualStress) / alloy.baseResidualStress) * 100),
+      hipPoreClosurePct: s3ClosurePct,
+      stage4YieldBoost: s4YieldBoost,
+      baseYield: alloy.baseYield,
+      baseUTS: alloy.baseUTS,
+      baseElongation: alloy.baseElongation,
+      baseResidualStress: alloy.baseResidualStress,
+      baseFatigue: alloy.baseFatigue,
+      betaTransusC: T_beta,
+      s1Notes,
+      s2Notes,
+      s3Notes,
+      s4Notes
     };
-  }, [stagesConfig, enabledStages, alloyConstants]);
+  }, [stagesConfig, enabledStages, selectedRouteAlloy]);
 
   // Export Custom Route Card
   const handleExportRouteCard = () => {
@@ -771,14 +1011,32 @@ export function MatSciCommandSections({
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleExportRouteCard}
-                className="px-4 py-2 rounded-lg text-xs font-mono font-semibold bg-[#101112] hover:bg-[#1a1b1d] border border-[#232426] hover:border-[#5E6BFF]/50 text-white flex items-center gap-2 transition-all shadow-md"
-              >
-                <Download className="w-3.5 h-3.5 text-[#5E6BFF]" />
-                <span>Export Route Spec (JSON)</span>
-              </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <div>
+                <label className="text-[10px] font-mono text-[#7189a3] block mb-1">Target Alloy:</label>
+                <select
+                  value={selectedRouteAlloy}
+                  onChange={(e) => setSelectedRouteAlloy(e.target.value)}
+                  className="bg-[#101112] border border-[#232426] text-xs font-mono text-white rounded-lg px-3 py-1.5 focus:border-[#5E6BFF] focus:outline-none"
+                >
+                  <option value="ti-6al-4v">Ti-6Al-4V (Grade 5)</option>
+                  <option value="ti-6al-4v-eli">Ti-6Al-4V ELI (Grade 23)</option>
+                  <option value="ti-6242">Ti-6242 (High-Temp Creep)</option>
+                  <option value="ti-5553">Ti-5553 (Near-Beta)</option>
+                  <option value="ti-grade-2">Ti Grade 2 (CP Unalloyed)</option>
+                  <option value="ti-48al-2cr-2nb">Gamma TiAl (Intermetallic)</option>
+                </select>
+              </div>
+
+              <div className="pt-4 sm:pt-0">
+                <button
+                  onClick={handleExportRouteCard}
+                  className="px-4 py-2 rounded-lg text-xs font-mono font-semibold bg-[#101112] hover:bg-[#1a1b1d] border border-[#232426] hover:border-[#5E6BFF]/50 text-white flex items-center gap-2 transition-all shadow-md"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#5E6BFF]" />
+                  <span>Export Route Spec (JSON)</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -837,32 +1095,195 @@ export function MatSciCommandSections({
 
                     {/* Stage Parameter Sliders (if enabled) */}
                     {isEnabled && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-8 pt-2 border-t border-[#1a1b1d] text-xs font-mono">
-                        <div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-[#9A9DA3]">Process Temperature</span>
-                            <span className="text-white font-bold">{stage.tempC}°C</span>
-                          </div>
-                          <input
-                            type="range"
-                            min={stage.category === 'As-Built' ? 1400 : 450}
-                            max={stage.category === 'As-Built' ? 1800 : 1050}
-                            step={10}
-                            value={stage.tempC}
-                            onChange={(e) => updateStageTemp(stage.id, Number(e.target.value))}
-                            className="w-full accent-[#5E6BFF] bg-[#1a1b1d] h-1.5 rounded-lg appearance-none cursor-pointer"
-                          />
-                        </div>
+                      <div className="pl-8 pt-3 border-t border-[#1a1b1d] text-xs font-mono space-y-3">
+                        {/* Stage 1: Deposition */}
+                        {stage.id === 'stage-1' && (
+                          <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-[#9A9DA3]">Melt Pool Peak Temp</span>
+                                  <span className="text-white font-bold">{stage.tempC}°C</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min={1400}
+                                  max={2200}
+                                  step={10}
+                                  value={stage.tempC}
+                                  onChange={(e) => updateStageTemp(stage.id, Number(e.target.value))}
+                                  className="w-full accent-[#5E6BFF] bg-[#1a1b1d] h-1.5 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
 
-                        <div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-[#9A9DA3]">Atmosphere &amp; Pressure</span>
-                            <span className="text-white font-bold">{stage.pressureBar} bar</span>
-                          </div>
-                          <div className="text-[11px] text-[#50d8e9] pt-1">
-                            {stage.pressureBar > 100 ? 'High-Pressure Argon HIP' : stage.atmosphere}
-                          </div>
-                        </div>
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-[#9A9DA3]">Chamber / Bed Preheat</span>
+                                  <span className="text-[#50d8e9] font-bold">{stage.secondaryTempC ?? 150}°C</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min={25}
+                                  max={650}
+                                  step={25}
+                                  value={stage.secondaryTempC ?? 150}
+                                  onChange={(e) => updateStageSecondaryTemp(stage.id, Number(e.target.value))}
+                                  className="w-full accent-[#50d8e9] bg-[#1a1b1d] h-1.5 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between text-[11px] text-[#7189a3] pt-1">
+                              <span>Pressure: <strong>{stage.pressureBar} bar</strong> ({stage.atmosphere})</span>
+                              <button
+                                type="button"
+                                onClick={syncStage1FromTelemetry}
+                                className="text-[10px] text-[#50d8e9] hover:text-[#7ce5f2] flex items-center gap-1 transition-colors underline"
+                              >
+                                <RotateCcw className="w-2.5 h-2.5" />
+                                Sync from Thermal Telemetry ({thermalTelemetry.T_peak}°C / {preheatTempC}°C)
+                              </button>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Stage 2: Stress Relief */}
+                        {stage.id === 'stage-2' && (
+                          <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-[#9A9DA3]">Process Temperature</span>
+                                  <span className="text-white font-bold">{stage.tempC}°C</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min={450}
+                                  max={1050}
+                                  step={10}
+                                  value={stage.tempC}
+                                  onChange={(e) => updateStageTemp(stage.id, Number(e.target.value))}
+                                  className="w-full accent-[#5E6BFF] bg-[#1a1b1d] h-1.5 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-[#9A9DA3]">Soaking Duration</span>
+                                  <span className="text-white font-bold">{stage.durationHours} hrs</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min={0.5}
+                                  max={6.0}
+                                  step={0.5}
+                                  value={stage.durationHours}
+                                  onChange={(e) => updateStageDuration(stage.id, Number(e.target.value))}
+                                  className="w-full accent-[#5E6BFF] bg-[#1a1b1d] h-1.5 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[11px] text-[#7189a3] pt-1">
+                              <span>Atmosphere: {stage.atmosphere}</span>
+                              <span className="text-emerald-400 font-bold text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                                {routeImpact.stressReliefPct}% Stress Relieved
+                              </span>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Stage 3: HIP */}
+                        {stage.id === 'stage-3' && (
+                          <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-[#9A9DA3]">Process Temperature</span>
+                                  <span className="text-white font-bold">{stage.tempC}°C</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min={750}
+                                  max={1100}
+                                  step={10}
+                                  value={stage.tempC}
+                                  onChange={(e) => updateStageTemp(stage.id, Number(e.target.value))}
+                                  className="w-full accent-[#5E6BFF] bg-[#1a1b1d] h-1.5 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-[#9A9DA3]">Argon Gas Pressure</span>
+                                  <span className="text-[#50d8e9] font-bold">{stage.pressureBar} bar</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min={200}
+                                  max={2000}
+                                  step={50}
+                                  value={stage.pressureBar}
+                                  onChange={(e) => updateStagePressure(stage.id, Number(e.target.value))}
+                                  className="w-full accent-[#50d8e9] bg-[#1a1b1d] h-1.5 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[11px] text-[#7189a3] pt-1">
+                              <span>Cycle: 2.0 hrs Soak • High-Purity Argon HIP</span>
+                              <span className="text-[#50d8e9] font-bold text-[10px] px-2 py-0.5 rounded bg-[#50d8e9]/10 border border-[#50d8e9]/20">
+                                {routeImpact.hipPoreClosurePct}% Pore Closure (+{Math.max(0, routeImpact.fatigueStrengthMPa - routeImpact.baseFatigue)} MPa Fatigue)
+                              </span>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Stage 4: STA */}
+                        {stage.id === 'stage-4' && (
+                          <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-[#9A9DA3]">Solution Temperature</span>
+                                  <span className="text-white font-bold">{stage.tempC}°C</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min={800}
+                                  max={1050}
+                                  step={10}
+                                  value={stage.tempC}
+                                  onChange={(e) => updateStageTemp(stage.id, Number(e.target.value))}
+                                  className="w-full accent-[#5E6BFF] bg-[#1a1b1d] h-1.5 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-[#9A9DA3]">Aging Temperature</span>
+                                  <span className="text-indigo-300 font-bold">{stage.secondaryTempC ?? 520}°C</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min={450}
+                                  max={620}
+                                  step={10}
+                                  value={stage.secondaryTempC ?? 520}
+                                  onChange={(e) => updateStageSecondaryTemp(stage.id, Number(e.target.value))}
+                                  className="w-full accent-indigo-400 bg-[#1a1b1d] h-1.5 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[11px] text-[#7189a3] pt-1">
+                              <span>Water Quench + 4.0 hrs Aging in Argon</span>
+                              <span className="text-indigo-400 font-bold text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
+                                +{routeImpact.stage4YieldBoost} MPa Precipitation Hardening
+                              </span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -892,8 +1313,14 @@ export function MatSciCommandSections({
                   <div className="w-full bg-[#161719] h-2 rounded-full overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-[#5E6BFF] to-[#50d8e9] h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, (routeImpact.yieldStrengthMPa / 1200) * 100)}%` }}
+                      style={{ width: `${Math.min(100, (routeImpact.yieldStrengthMPa / 1400) * 100)}%` }}
                     />
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] pt-0.5">
+                    <span className="text-[#7189a3]">Baseline: {routeImpact.baseYield} MPa</span>
+                    <span className={routeImpact.deltaYield >= 0 ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>
+                      {routeImpact.deltaYield >= 0 ? `+${routeImpact.deltaYield}` : `${routeImpact.deltaYield}`} MPa vs As-Built
+                    </span>
                   </div>
                 </div>
 
@@ -906,8 +1333,14 @@ export function MatSciCommandSections({
                   <div className="w-full bg-[#161719] h-2 rounded-full overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, (routeImpact.utsMPa / 1300) * 100)}%` }}
+                      style={{ width: `${Math.min(100, (routeImpact.utsMPa / 1500) * 100)}%` }}
                     />
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] pt-0.5">
+                    <span className="text-[#7189a3]">Baseline: {routeImpact.baseUTS} MPa</span>
+                    <span className={routeImpact.deltaUTS >= 0 ? 'text-blue-400 font-semibold' : 'text-amber-400 font-semibold'}>
+                      {routeImpact.deltaUTS >= 0 ? `+${routeImpact.deltaUTS}` : `${routeImpact.deltaUTS}`} MPa
+                    </span>
                   </div>
                 </div>
 
@@ -923,6 +1356,12 @@ export function MatSciCommandSections({
                       style={{ width: `${Math.min(100, (routeImpact.elongationPct / 25) * 100)}%` }}
                     />
                   </div>
+                  <div className="flex justify-between items-center text-[10px] pt-0.5">
+                    <span className="text-[#7189a3]">As-Built: {routeImpact.baseElongation}%</span>
+                    <span className={routeImpact.elongationPct >= 10 ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>
+                      {routeImpact.elongationPct >= 10 ? '✓ Exceeds ASTM min 10%' : '⚠ Below ASTM F2924 (<10%)'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Metric 4: Residual Stress Reduction */}
@@ -935,8 +1374,18 @@ export function MatSciCommandSections({
                       {routeImpact.residualStressMPa} MPa
                     </span>
                   </div>
+                  <div className="w-full bg-[#161719] h-2 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        routeImpact.residualStressMPa <= 50 ? 'bg-emerald-500' : routeImpact.residualStressMPa <= 150 ? 'bg-amber-500' : 'bg-rose-500'
+                      }`}
+                      style={{ width: `${Math.min(100, (routeImpact.residualStressMPa / 600) * 100)}%` }}
+                    />
+                  </div>
                   <span className="text-[10px] text-[#7189a3] block">
-                    {routeImpact.residualStressMPa <= 50 ? '✓ Fully Relaxed / Safe from Distortions' : '⚠ Elevated Residual Stress'}
+                    {routeImpact.residualStressMPa <= 50
+                      ? `✓ Fully Relaxed / Safe from Distortions (${routeImpact.stressReliefPct}% relieved)`
+                      : `⚠ Active Residual Stress (${routeImpact.residualStressMPa} MPa)`}
                   </span>
                 </div>
 
@@ -946,10 +1395,52 @@ export function MatSciCommandSections({
                     <span className="text-[#9A9DA3]">High-Cycle Fatigue (10⁷ cycles)</span>
                     <span className="text-base font-bold text-[#50d8e9]">{routeImpact.fatigueStrengthMPa} MPa</span>
                   </div>
+                  <div className="w-full bg-[#161719] h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-[#50d8e9] h-full rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (routeImpact.fatigueStrengthMPa / 1000) * 100)}%` }}
+                    />
+                  </div>
                   <span className="text-[10px] text-[#7189a3] block">
-                    {enabledStages['stage-3'] ? '✓ HIP defect pore closure applied (+45% endurance)' : 'Un-hipped baseline'}
+                    {enabledStages['stage-3']
+                      ? `✓ HIP pore closure applied (${routeImpact.hipPoreClosurePct}% healed, endurance boosted)`
+                      : 'Un-hipped baseline (defect-limited)'}
                   </span>
                 </div>
+              </div>
+
+              {/* Real-time Synthesis Stage Notes */}
+              <div className="bg-[#0b0c0e] p-3.5 rounded-lg border border-[#1a1b1d] space-y-2 text-[11px] font-mono">
+                <span className="text-[#5E6BFF] font-bold block flex items-center gap-1.5 text-xs">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Live Route Metallurgy Synthesis:
+                </span>
+                <ul className="space-y-1 text-[#9A9DA3] pl-1">
+                  {enabledStages['stage-1'] && (
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-[#50d8e9]">•</span>
+                      <span>{routeImpact.s1Notes}</span>
+                    </li>
+                  )}
+                  {enabledStages['stage-2'] && (
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-emerald-400">•</span>
+                      <span>{routeImpact.s2Notes}</span>
+                    </li>
+                  )}
+                  {enabledStages['stage-3'] && (
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-[#50d8e9]">•</span>
+                      <span>{routeImpact.s3Notes}</span>
+                    </li>
+                  )}
+                  {enabledStages['stage-4'] && (
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-indigo-400">•</span>
+                      <span>{routeImpact.s4Notes}</span>
+                    </li>
+                  )}
+                </ul>
               </div>
 
               <div className="pt-2">
