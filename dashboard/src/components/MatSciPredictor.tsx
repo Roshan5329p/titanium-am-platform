@@ -1492,46 +1492,64 @@ export function MatSciPredictor({
                       </div>
 
                       {/* Models Table */}
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs text-left">
-                          <thead>
-                            <tr className="border-b border-[#1f2837] text-[#7189a3]">
-                              <th className="pb-2.5 px-3 font-semibold">Model</th>
-                              <th className="pb-2.5 px-3 font-semibold text-right">Predicted HV</th>
-                              <th className="pb-2.5 px-3 font-semibold text-center">~ HRC</th>
-                              <th className="pb-2.5 px-3 font-semibold text-right">Expected error (LOO MAE, HV)</th>
-                              <th className="pb-2.5 px-3 font-semibold text-right">Closeness to exp.</th>
-                              <th className="pb-2.5 px-3 font-semibold text-right">R² (LOO)</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[#18202c]">
-                            {prediction.modelsTable.map((m, idx) => (
-                              <tr key={m.modelName} className="hover:bg-[#151c27] transition-colors">
-                                <td className="py-2.5 px-3 font-medium text-white flex items-center gap-2">
-                                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                                    idx === 0 ? 'bg-blue-400' :
-                                    idx === 1 ? 'bg-emerald-400' :
-                                    idx === 2 ? 'bg-amber-400' :
-                                    idx === 3 ? 'bg-purple-400' : 'bg-rose-400'
-                                  }`} />
-                                  <span>{m.modelName}</span>
-                                </td>
-                                <td className="py-2.5 px-3 font-mono font-bold text-white text-right">{m.predictedHV}</td>
-                                <td className="py-2.5 px-3 font-mono text-[#8fa3ba] text-center">{m.rockwellHRC}</td>
-                                <td className="py-2.5 px-3 font-mono text-[#8fa3ba] text-right">{m.expectedErrorHV}</td>
-                                <td className="py-2.5 px-3 font-mono text-emerald-400 text-right">{m.closenessPct}%</td>
-                                <td className="py-2.5 px-3 font-mono text-[#50d8e9] text-right">{m.r2Score}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div className="mt-2 text-[10px] text-[#5e7792]">
-                        Expected error &amp; closeness = leave-one-out cross-validation against published experiments for Ti-6Al-4V LPBF records (N=16). Closeness = 100 - mean absolute % error.
-                      </div>
-
-                      {/* Dynamic Bar Chart matching Image 1 */}
                       {(() => {
+                        const ARCHITECTURE_COLOR_PALETTE = [
+                          {
+                            name: 'Analytical',
+                            dotClass: 'bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.6)]',
+                            topColor: '#60a5fa',
+                            bottomColor: '#1d4ed8',
+                            glowColor: '#3b82f6',
+                            borderHighlight: '#bfdbfe',
+                            textClass: 'text-blue-400'
+                          },
+                          {
+                            name: 'Random Forest',
+                            dotClass: 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.6)]',
+                            topColor: '#34d399',
+                            bottomColor: '#047857',
+                            glowColor: '#10b981',
+                            borderHighlight: '#a7f3d0',
+                            textClass: 'text-emerald-400'
+                          },
+                          {
+                            name: 'Grad Boost',
+                            dotClass: 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.6)]',
+                            topColor: '#fbbf24',
+                            bottomColor: '#b45309',
+                            glowColor: '#f59e0b',
+                            borderHighlight: '#fde68a',
+                            textClass: 'text-amber-400'
+                          },
+                          {
+                            name: 'SVM (RBF)',
+                            dotClass: 'bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.6)]',
+                            topColor: '#c084fc',
+                            bottomColor: '#7e22ce',
+                            glowColor: '#a855f7',
+                            borderHighlight: '#e9d5ff',
+                            textClass: 'text-purple-400'
+                          },
+                          {
+                            name: 'Hybrid GPR',
+                            dotClass: 'bg-pink-400 shadow-[0_0_8px_rgba(244,114,182,0.6)]',
+                            topColor: '#f472b6',
+                            bottomColor: '#be185d',
+                            glowColor: '#ec4899',
+                            borderHighlight: '#fbcfe8',
+                            textClass: 'text-pink-400'
+                          },
+                          {
+                            name: 'Ensemble',
+                            dotClass: 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]',
+                            topColor: '#fb7185',
+                            bottomColor: '#9f1239',
+                            glowColor: '#f43f5e',
+                            borderHighlight: '#fecdd3',
+                            textClass: 'text-rose-400'
+                          }
+                        ];
+
                         const alloyProps = ALLOY_THERMAL_PROPERTIES[selectedAlloyId];
                         const baseHV = alloyProps?.baseHardnessHV || 290;
                         const alloyMinHV = Math.round(baseHV * 0.95);
@@ -1539,125 +1557,189 @@ export function MatSciPredictor({
                         const maxModelHV = Math.max(...prediction.modelsTable.map(m => m.predictedHV));
                         const maxChartHV = Math.max(350, Math.ceil(Math.max(maxModelHV, alloyMaxHV * 1.08) / 50) * 50);
                         const chartTicks = [0, 0.25, 0.5, 0.75, 1.0].map(f => Math.round(f * maxChartHV));
-                        const refY = 148 - (Math.min(maxChartHV, (alloyMinHV + alloyMaxHV) / 2) / maxChartHV) * 120;
 
                         return (
-                          <div className="mt-6 pt-4 border-t border-[#1a222e]">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-semibold text-[#8fa3ba]">Predicted Hardness across Architectures</span>
-                              <span className="text-[10px] text-[#50d8e9] font-mono flex items-center gap-1.5">
-                                <span className="inline-block w-4 h-0 border-b-2 border-dashed border-[#50d8e9]" />
-                                <span>Benchmark: {alloyMinHV} – {alloyMaxHV} HV</span>
-                              </span>
+                          <>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs text-left">
+                                <thead>
+                                  <tr className="border-b border-[#1f2837] text-[#7189a3]">
+                                    <th className="pb-2.5 px-3 font-semibold">Model</th>
+                                    <th className="pb-2.5 px-3 font-semibold text-right">Predicted HV</th>
+                                    <th className="pb-2.5 px-3 font-semibold text-center">~ HRC</th>
+                                    <th className="pb-2.5 px-3 font-semibold text-right">Expected error (LOO MAE, HV)</th>
+                                    <th className="pb-2.5 px-3 font-semibold text-right">Closeness to exp.</th>
+                                    <th className="pb-2.5 px-3 font-semibold text-right">R² (LOO)</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#18202c]">
+                                  {prediction.modelsTable.map((m, idx) => {
+                                    const pal = ARCHITECTURE_COLOR_PALETTE[idx % ARCHITECTURE_COLOR_PALETTE.length];
+                                    return (
+                                      <tr key={m.modelName} className="hover:bg-[#151c27] transition-colors">
+                                        <td className="py-2.5 px-3 font-medium text-white flex items-center gap-2">
+                                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${pal.dotClass}`} />
+                                          <span>{m.modelName}</span>
+                                        </td>
+                                        <td className="py-2.5 px-3 font-mono font-bold text-white text-right">{m.predictedHV}</td>
+                                        <td className="py-2.5 px-3 font-mono text-[#8fa3ba] text-center">{m.rockwellHRC}</td>
+                                        <td className="py-2.5 px-3 font-mono text-[#8fa3ba] text-right">{m.expectedErrorHV}</td>
+                                        <td className="py-2.5 px-3 font-mono text-emerald-400 text-right">{m.closenessPct}%</td>
+                                        <td className="py-2.5 px-3 font-mono text-[#50d8e9] text-right">{m.r2Score}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="mt-2 text-[10px] text-[#5e7792]">
+                              Expected error &amp; closeness = leave-one-out cross-validation against published experiments for Ti-6Al-4V LPBF records (N=16). Closeness = 100 - mean absolute % error.
                             </div>
 
-                            <div className="w-full bg-[#0b0e13] rounded-lg border border-[#1a222e] p-3">
-                              <svg className="w-full h-48" viewBox="0 0 540 180" preserveAspectRatio="none">
-                                {/* Horizontal grid lines and Y-axis scale */}
-                                {chartTicks.map((tick) => {
-                                  const y = 148 - (tick / maxChartHV) * 120;
-                                  return (
-                                    <g key={tick}>
-                                      <line x1="38" y1={y} x2="530" y2={y} stroke="#1b2330" strokeWidth="1" strokeDasharray="2 3" />
-                                      <text x="32" y={y + 3} fill="#5e758f" fontSize="8.5" textAnchor="end" fontFamily="monospace">
-                                        {tick}
-                                      </text>
-                                    </g>
-                                  );
-                                })}
+                            {/* Dynamic Color-Graded Bar Chart */}
+                            <div className="mt-6 pt-4 border-t border-[#1a222e]">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-[#8fa3ba]">Predicted Hardness across Architectures</span>
+                                <span className="text-[10px] text-[#50d8e9] font-mono flex items-center gap-1.5">
+                                  <span className="inline-block w-4 h-0 border-b-2 border-dashed border-[#50d8e9]" />
+                                  <span>Benchmark: {alloyMinHV} – {alloyMaxHV} HV</span>
+                                </span>
+                              </div>
 
-                                {/* Y-axis label */}
-                                <text x="12" y="85" fill="#5e758f" fontSize="8" textAnchor="middle" transform="rotate(-90 12 85)">
-                                  HV
-                                </text>
+                              <div className="w-full bg-[#0b0e13] rounded-lg border border-[#1a222e] p-3">
+                                <svg className="w-full h-48" viewBox="0 0 540 180" preserveAspectRatio="none">
+                                  <defs>
+                                    {ARCHITECTURE_COLOR_PALETTE.map((pal, idx) => (
+                                      <linearGradient key={idx} id={`model-bar-grad-${idx}`} x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor={pal.topColor} />
+                                        <stop offset="100%" stopColor={pal.bottomColor} />
+                                      </linearGradient>
+                                    ))}
+                                    <linearGradient id="bench-zone-grad" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="0%" stopColor="#50d8e9" stopOpacity="0.14" />
+                                      <stop offset="100%" stopColor="#50d8e9" stopOpacity="0.02" />
+                                    </linearGradient>
+                                  </defs>
 
-                                {/* Baseline */}
-                                <line x1="38" y1="148" x2="530" y2="148" stroke="#253040" strokeWidth="1" />
+                                  {/* Horizontal grid lines and Y-axis scale */}
+                                  {chartTicks.map((tick) => {
+                                    const y = 148 - (tick / maxChartHV) * 120;
+                                    return (
+                                      <g key={tick}>
+                                        <line x1="38" y1={y} x2="530" y2={y} stroke="#1b2330" strokeWidth="1" strokeDasharray="2 3" />
+                                        <text x="32" y={y + 3} fill="#5e758f" fontSize="8.5" textAnchor="end" fontFamily="monospace">
+                                          {tick}
+                                        </text>
+                                      </g>
+                                    );
+                                  })}
 
-                                {/* Reference range dashed line across full width (behind bars) */}
-                                <line
-                                  x1="38"
-                                  y1={refY}
-                                  x2="530"
-                                  y2={refY}
-                                  stroke="#50d8e9"
-                                  strokeWidth="1.2"
-                                  strokeDasharray="4 3"
-                                  strokeOpacity="0.75"
-                                />
-
-                                {/* Dedicated Benchmark Badge positioned in the top header area of the SVG (never overlaps bars) */}
-                                <g transform="translate(268, 6)">
-                                  <rect x="0" y="0" width="262" height="15" rx="3" fill="#0d141e" stroke="#50d8e9" strokeWidth="0.8" strokeOpacity="0.4" />
-                                  <line x1="8" y1="7.5" x2="24" y2="7.5" stroke="#50d8e9" strokeWidth="1.5" strokeDasharray="3 2" />
-                                  <text x="30" y="10.5" fill="#50d8e9" fontSize="8" fontWeight="bold" fontFamily="monospace">
-                                    Range of published experiments ({alloyMinHV} – {alloyMaxHV} HV)
+                                  {/* Y-axis label */}
+                                  <text x="12" y="85" fill="#5e758f" fontSize="8" textAnchor="middle" transform="rotate(-90 12 85)">
+                                    HV
                                   </text>
-                                </g>
 
-                                {/* The 6 Model Bars */}
-                                {prediction.modelsTable.map((m, idx) => {
-                                  const barColors = ['#3b82f6', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#ef4444'];
-                                  const barWidth = 48;
-                                  const barSpacing = 78;
-                                  const barX = 46 + idx * barSpacing;
-                                  const barHeight = Math.max(12, Math.min(125, (m.predictedHV / maxChartHV) * 120));
-                                  const barY = 148 - barHeight;
-                                  const shortLabels = ['Analytical', 'Random Forest', 'Grad Boost', 'SVM (RBF)', 'Hybrid GPR', 'Ensemble'];
+                                  {/* Benchmark Published Experiment Range Shaded Band */}
+                                  {(() => {
+                                    const yMax = 148 - (Math.min(maxChartHV, alloyMaxHV) / maxChartHV) * 120;
+                                    const yMin = 148 - (Math.min(maxChartHV, alloyMinHV) / maxChartHV) * 120;
+                                    const bandHeight = Math.max(3, yMin - yMax);
+                                    return (
+                                      <g>
+                                        <rect
+                                          x="38"
+                                          y={yMax}
+                                          width="492"
+                                          height={bandHeight}
+                                          fill="url(#bench-zone-grad)"
+                                        />
+                                        <line x1="38" y1={yMax} x2="530" y2={yMax} stroke="#50d8e9" strokeWidth="1" strokeDasharray="4 3" strokeOpacity="0.65" />
+                                        <line x1="38" y1={yMin} x2="530" y2={yMin} stroke="#50d8e9" strokeWidth="1" strokeDasharray="4 3" strokeOpacity="0.65" />
+                                      </g>
+                                    );
+                                  })()}
 
-                                  return (
-                                    <g key={m.modelName} className="transition-all duration-300">
-                                      {/* Value label on top of bar */}
-                                      <text
-                                        x={barX + barWidth / 2}
-                                        y={barY - 5}
-                                        fill="#ffffff"
-                                        fontSize="10"
-                                        fontWeight="bold"
-                                        textAnchor="middle"
-                                        fontFamily="monospace"
-                                      >
-                                        {m.predictedHV}
-                                      </text>
+                                  {/* Baseline */}
+                                  <line x1="38" y1="148" x2="530" y2="148" stroke="#253040" strokeWidth="1" />
 
-                                      {/* The solid colored bar with rounded top */}
-                                      <rect
-                                        x={barX}
-                                        y={barY}
-                                        width={barWidth}
-                                        height={barHeight}
-                                        rx="3"
-                                        fill={barColors[idx]}
-                                        fillOpacity="0.95"
-                                      />
+                                  {/* Dedicated Benchmark Badge positioned in the top header area of the SVG */}
+                                  <g transform="translate(268, 6)">
+                                    <rect x="0" y="0" width="262" height="15" rx="3" fill="#0d141e" stroke="#50d8e9" strokeWidth="0.8" strokeOpacity="0.4" />
+                                    <line x1="8" y1="7.5" x2="24" y2="7.5" stroke="#50d8e9" strokeWidth="1.5" strokeDasharray="3 2" />
+                                    <text x="30" y="10.5" fill="#50d8e9" fontSize="8" fontWeight="bold" fontFamily="monospace">
+                                      Range of published experiments ({alloyMinHV} – {alloyMaxHV} HV)
+                                    </text>
+                                  </g>
 
-                                      {/* Highlight accent on top edge of bar */}
-                                      <line
-                                        x1={barX + 2}
-                                        y1={barY}
-                                        x2={barX + barWidth - 2}
-                                        y2={barY}
-                                        stroke="#ffffff"
-                                        strokeWidth="1"
-                                        strokeOpacity="0.6"
-                                      />
+                                  {/* The 6 Color-Graded Model Bars */}
+                                  {prediction.modelsTable.map((m, idx) => {
+                                    const pal = ARCHITECTURE_COLOR_PALETTE[idx % ARCHITECTURE_COLOR_PALETTE.length];
+                                    const barWidth = 48;
+                                    const barSpacing = 78;
+                                    const barX = 46 + idx * barSpacing;
+                                    const barHeight = Math.max(12, Math.min(125, (m.predictedHV / maxChartHV) * 120));
+                                    const barY = 148 - barHeight;
+                                    const shortLabels = ['Analytical', 'Random Forest', 'Grad Boost', 'SVM (RBF)', 'Hybrid GPR', 'Ensemble'];
 
-                                      {/* Model name below baseline */}
-                                      <text
-                                        x={barX + barWidth / 2}
-                                        y="164"
-                                        fill="#8fa3ba"
-                                        fontSize="9"
-                                        textAnchor="middle"
-                                      >
-                                        {shortLabels[idx]}
-                                      </text>
-                                    </g>
-                                  );
-                                })}
-                              </svg>
+                                    return (
+                                      <g key={m.modelName} className="transition-all duration-300">
+                                        {/* Value label on top of bar */}
+                                        <text
+                                          x={barX + barWidth / 2}
+                                          y={barY - 6}
+                                          fill="#ffffff"
+                                          fontSize="10"
+                                          fontWeight="bold"
+                                          textAnchor="middle"
+                                          fontFamily="monospace"
+                                        >
+                                          {m.predictedHV}
+                                        </text>
+
+                                        {/* The color-graded gradient bar with rounded top */}
+                                        <rect
+                                          x={barX}
+                                          y={barY}
+                                          width={barWidth}
+                                          height={barHeight}
+                                          rx="4"
+                                          fill={`url(#model-bar-grad-${idx})`}
+                                          stroke={pal.topColor}
+                                          strokeWidth="0.8"
+                                          strokeOpacity="0.6"
+                                        />
+
+                                        {/* Glassmorphic rim highlight on top edge of bar */}
+                                        <line
+                                          x1={barX + 2}
+                                          y1={barY + 0.5}
+                                          x2={barX + barWidth - 2}
+                                          y2={barY + 0.5}
+                                          stroke={pal.borderHighlight}
+                                          strokeWidth="1.5"
+                                          strokeOpacity="0.8"
+                                          strokeLinecap="round"
+                                        />
+
+                                        {/* Model name below baseline */}
+                                        <text
+                                          x={barX + barWidth / 2}
+                                          y="164"
+                                          fill="#8fa3ba"
+                                          fontSize="9"
+                                          textAnchor="middle"
+                                          fontFamily="monospace"
+                                          fontWeight="500"
+                                        >
+                                          {shortLabels[idx]}
+                                        </text>
+                                      </g>
+                                    );
+                                  })}
+                                </svg>
+                              </div>
                             </div>
-                          </div>
+                          </>
                         );
                       })()}
 
