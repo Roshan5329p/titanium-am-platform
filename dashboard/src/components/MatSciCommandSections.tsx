@@ -62,62 +62,194 @@ interface ProcessPreset {
 
 const PROCESS_PRESETS: Record<string, ProcessPreset> = {
   'pbf-lb': {
-    name: 'Laser Powder Bed Fusion (PBF-LB)',
+    name: 'Laser Powder Bed Fusion (PBF-LB / SLM / DMLS)',
     category: 'Powder Bed Fusion',
     defaultPowerW: 285,
     minPowerW: 50,
-    maxPowerW: 500,
+    maxPowerW: 600,
     defaultSpeedMmS: 1200,
     minSpeedMmS: 200,
-    maxSpeedMmS: 2500,
+    maxSpeedMmS: 3000,
     defaultPreheatC: 35,
     absorptivity: 0.35,
     spotDiameterUm: 80,
-    description: 'High thermal gradient, ultra-fast cooling rate (10^5 - 10^6 K/s), martensitic as-built state.'
+    description: 'High thermal gradient, ultra-fast cooling rate (10^5 - 10^6 K/s), acicular α\' martensitic as-built state.'
   },
   'pbf-eb': {
     name: 'Electron Beam PBF (PBF-EB / EBM)',
     category: 'Powder Bed Fusion',
     defaultPowerW: 650,
     minPowerW: 200,
-    maxPowerW: 1200,
+    maxPowerW: 1500,
     defaultSpeedMmS: 2500,
     minSpeedMmS: 500,
-    maxSpeedMmS: 5000,
+    maxSpeedMmS: 6000,
     defaultPreheatC: 650,
     absorptivity: 0.85,
     spotDiameterUm: 200,
-    description: 'Elevated bed preheat (650°C), in-situ stress relief, dual-phase lamellar alpha+beta.'
+    description: 'High vacuum, preheated powder cake (650°C-750°C), in-situ stress relief, dual-phase lamellar α+β.'
   },
   'ded-lb': {
-    name: 'Laser Directed Energy Deposition (L-DED)',
+    name: 'Laser Powder DED (LENS / Blown Powder)',
     category: 'Directed Energy Deposition',
     defaultPowerW: 1500,
     minPowerW: 400,
-    maxPowerW: 3500,
+    maxPowerW: 4000,
     defaultSpeedMmS: 25,
     minSpeedMmS: 5,
-    maxSpeedMmS: 60,
+    maxSpeedMmS: 80,
     defaultPreheatC: 25,
     absorptivity: 0.42,
     spotDiameterUm: 1200,
-    description: 'Moderate cooling rate (10^3 K/s), larger melt pools, columnar prior-beta grain structures.'
+    description: 'Coaxial blown powder stream, moderate cooling rate (10^3 K/s), columnar prior-β grain structures.'
+  },
+  'ded-wire': {
+    name: 'Wire Laser DED (WL-AM / Wire Fed)',
+    category: 'Directed Energy Deposition',
+    defaultPowerW: 2200,
+    minPowerW: 600,
+    maxPowerW: 5000,
+    defaultSpeedMmS: 18,
+    minSpeedMmS: 5,
+    maxSpeedMmS: 50,
+    defaultPreheatC: 50,
+    absorptivity: 0.40,
+    spotDiameterUm: 2200,
+    description: 'High deposition rate (1.5-2.5 kg/h), automated wire feeding with 100% material capture efficiency.'
   },
   'waam': {
-    name: 'Wire Arc Additive Manufacturing (WAAM)',
-    category: 'Wire Arc Additive Manufacturing',
+    name: 'Wire Arc Additive Manufacturing (WAAM - GMAW / Plasma)',
+    category: 'Wire arc additive manufacturing',
     defaultPowerW: 2800,
     minPowerW: 1000,
-    maxPowerW: 5500,
+    maxPowerW: 6500,
     defaultSpeedMmS: 12,
     minSpeedMmS: 3,
-    maxSpeedMmS: 35,
+    maxSpeedMmS: 40,
     defaultPreheatC: 150,
     absorptivity: 0.80,
     spotDiameterUm: 4000,
-    description: 'High deposition rate (>3 kg/h), significant heat accumulation, colonial lamellar alpha+beta.'
+    description: 'Electric arc melt pool with continuous wire feed, large melt volume (>3 kg/h), colonial lamellar α+β.'
+  },
+  'bjt': {
+    name: 'Metal Binder Jetting (MBJ + Sinter)',
+    category: 'Binder Jetting',
+    defaultPowerW: 120,
+    minPowerW: 30,
+    maxPowerW: 300,
+    defaultSpeedMmS: 80,
+    minSpeedMmS: 20,
+    maxSpeedMmS: 250,
+    defaultPreheatC: 65,
+    absorptivity: 0.25,
+    spotDiameterUm: 60,
+    description: 'Liquid binder droplets onto cold titanium powder; zero thermal residual stress in green part, vacuum sintered at 1250-1380°C.'
+  },
+  'mex': {
+    name: 'Bound Metal Extrusion (MEX / FDM + Sinter)',
+    category: 'Material Extrusion',
+    defaultPowerW: 85,
+    minPowerW: 20,
+    maxPowerW: 200,
+    defaultSpeedMmS: 45,
+    minSpeedMmS: 10,
+    maxSpeedMmS: 150,
+    defaultPreheatC: 110,
+    absorptivity: 0.30,
+    spotDiameterUm: 400,
+    description: 'Thermoplastic-bound titanium rod/filament deposition; low thermal gradients, furnace debound & vacuum sintered.'
+  },
+  'csam': {
+    name: 'Cold Spray Additive (Kinetic CSAM)',
+    category: 'Directed Energy Deposition',
+    defaultPowerW: 3500,
+    minPowerW: 1000,
+    maxPowerW: 8000,
+    defaultSpeedMmS: 250,
+    minSpeedMmS: 50,
+    maxSpeedMmS: 600,
+    defaultPreheatC: 350,
+    absorptivity: 0.65,
+    spotDiameterUm: 3000,
+    description: 'Supersonic gas-accelerated solid-state impact consolidation; zero melting, negligible heat-affected zone.'
+  },
+  'vat': {
+    name: 'Lithography-based Metal AM (VPP / LMM)',
+    category: 'Vat Photopolymerization',
+    defaultPowerW: 45,
+    minPowerW: 10,
+    maxPowerW: 150,
+    defaultSpeedMmS: 30,
+    minSpeedMmS: 5,
+    maxSpeedMmS: 100,
+    defaultPreheatC: 30,
+    absorptivity: 0.20,
+    spotDiameterUm: 35,
+    description: 'High-resolution photopolymerization of titanium slurry; sub-50 µm fine features, post-sintered to >98% density.'
+  },
+  'sheet-lam': {
+    name: 'Ultrasonic Sheet Lamination (UAM)',
+    category: 'Sheet Lamination',
+    defaultPowerW: 1800,
+    minPowerW: 500,
+    maxPowerW: 4500,
+    defaultSpeedMmS: 35,
+    minSpeedMmS: 10,
+    maxSpeedMmS: 100,
+    defaultPreheatC: 120,
+    absorptivity: 0.70,
+    spotDiameterUm: 5000,
+    description: 'Solid-state ultrasonic scrubbing of titanium foil ribbons with rotating sonotrode; low thermal distortion, embedded channels.'
   }
 };
+
+export const ALL_TITANIUM_ALLOYS_CATALOG = [
+  {
+    category: 'Alpha-Beta Alloys',
+    items: [
+      { id: 'ti-6al-4v', name: 'Ti-6Al-4V (Grade 5 - Workhorse)' },
+      { id: 'ti-6al-4v-eli', name: 'Ti-6Al-4V ELI (Grade 23 - Medical/Cryo)' },
+      { id: 'ti-6al-7nb', name: 'Ti-6Al-7Nb (Biomedical High-Toughness)' },
+      { id: 'ti-3al-2-5v', name: 'Ti-3Al-2.5V (Grade 9 - Hydraulic)' },
+      { id: 'ti-6246', name: 'Ti-6246 (High-Strength Deep Hardening)' }
+    ]
+  },
+  {
+    category: 'Near-Alpha & High-Temperature Alloys',
+    items: [
+      { id: 'ti-6242', name: 'Ti-6242 (High-Temp Creep Resistant)' },
+      { id: 'ti-5al-2-5sn', name: 'Ti-5Al-2.5Sn (Cryogenic Alpha)' },
+      { id: 'ti-811', name: 'Ti-8Al-1Mo-1V (Ti-811 High Modulus)' }
+    ]
+  },
+  {
+    category: 'Beta & Near-Beta Alloys',
+    items: [
+      { id: 'ti-5553', name: 'Ti-5553 (Near-Beta Heavy Section)' },
+      { id: 'ti-10v-2fe-3al', name: 'Ti-10V-2Fe-3Al (Forging Near-Beta)' },
+      { id: 'ti-15mo', name: 'Ti-15Mo (Corrosion Beta)' },
+      { id: 'ti-beta21s', name: 'Ti-Beta21S (Oxidation & Strip Foil)' },
+      { id: 'ti-13nb-13zr', name: 'Ti-13Nb-13Zr (Low Modulus Bio)' },
+      { id: 'ti-tnzt', name: 'Ti-35Nb-7Zr-5Ta (TNZT Orthopedic)' }
+    ]
+  },
+  {
+    category: 'Commercially Pure (CP Titanium)',
+    items: [
+      { id: 'ti-grade-1', name: 'Ti Grade 1 (CP - Highest Ductility)' },
+      { id: 'ti-grade-2', name: 'Ti Grade 2 (CP - Industrial Standard)' },
+      { id: 'ti-grade-3', name: 'Ti Grade 3 (CP - Medium Strength)' },
+      { id: 'ti-grade-4', name: 'Ti Grade 4 (CP - Highest Strength CP)' },
+      { id: 'ti-0-2pd', name: 'Ti-0.2Pd (Grade 7 - Acid Reducing)' }
+    ]
+  },
+  {
+    category: 'Intermetallics & Aluminides',
+    items: [
+      { id: 'ti-48al-2cr-2nb', name: 'Ti-48Al-2Cr-2Nb (Gamma TiAl Intermetallic)' }
+    ]
+  }
+];
 
 // ----------------------------------------------------------------------------
 // 2. ROUTE ARCHITECTURE PRESETS & STAGES
@@ -146,6 +278,42 @@ interface AlloyRouteBaselines {
 }
 
 const ALLOY_ROUTE_BASELINES: Record<string, AlloyRouteBaselines> = {
+  'ti-grade-1': {
+    name: 'Ti Grade 1 (CP)',
+    baseYield: 180,
+    baseUTS: 240,
+    baseElongation: 26.9,
+    baseResidualStress: 220,
+    baseFatigue: 130,
+    betaTransusC: 890,
+  },
+  'ti-grade-2': {
+    name: 'Ti Grade 2 (CP)',
+    baseYield: 286,
+    baseUTS: 371,
+    baseElongation: 22.0,
+    baseResidualStress: 280,
+    baseFatigue: 184,
+    betaTransusC: 913,
+  },
+  'ti-grade-3': {
+    name: 'Ti Grade 3 (CP)',
+    baseYield: 405,
+    baseUTS: 447,
+    baseElongation: 18.9,
+    baseResidualStress: 340,
+    baseFatigue: 223,
+    betaTransusC: 920,
+  },
+  'ti-grade-4': {
+    name: 'Ti Grade 4 (CP)',
+    baseYield: 474,
+    baseUTS: 566,
+    baseElongation: 16.6,
+    baseResidualStress: 390,
+    baseFatigue: 287,
+    betaTransusC: 950,
+  },
   'ti-6al-4v': {
     name: 'Ti-6Al-4V (Grade 5)',
     baseYield: 1060,
@@ -164,6 +332,51 @@ const ALLOY_ROUTE_BASELINES: Record<string, AlloyRouteBaselines> = {
     baseFatigue: 395,
     betaTransusC: 985,
   },
+  'ti-6al-7nb': {
+    name: 'Ti-6Al-7Nb (Biomedical)',
+    baseYield: 920,
+    baseUTS: 1030,
+    baseElongation: 10.5,
+    baseResidualStress: 510,
+    baseFatigue: 490,
+    betaTransusC: 1010,
+  },
+  'ti-3al-2-5v': {
+    name: 'Ti-3Al-2.5V (Grade 9)',
+    baseYield: 580,
+    baseUTS: 690,
+    baseElongation: 15.0,
+    baseResidualStress: 380,
+    baseFatigue: 310,
+    betaTransusC: 935,
+  },
+  'ti-3al-2.5v': {
+    name: 'Ti-3Al-2.5V (Grade 9)',
+    baseYield: 580,
+    baseUTS: 690,
+    baseElongation: 15.0,
+    baseResidualStress: 380,
+    baseFatigue: 310,
+    betaTransusC: 935,
+  },
+  'ti-5al-2-5sn': {
+    name: 'Ti-5Al-2.5Sn (Alpha Alloy)',
+    baseYield: 820,
+    baseUTS: 890,
+    baseElongation: 12.0,
+    baseResidualStress: 460,
+    baseFatigue: 420,
+    betaTransusC: 1040,
+  },
+  'ti-5al-2.5sn': {
+    name: 'Ti-5Al-2.5Sn (Alpha Alloy)',
+    baseYield: 820,
+    baseUTS: 890,
+    baseElongation: 12.0,
+    baseResidualStress: 460,
+    baseFatigue: 420,
+    betaTransusC: 1040,
+  },
   'ti-6242': {
     name: 'Ti-6242 (High-Temp Creep)',
     baseYield: 1120,
@@ -172,6 +385,24 @@ const ALLOY_ROUTE_BASELINES: Record<string, AlloyRouteBaselines> = {
     baseResidualStress: 560,
     baseFatigue: 410,
     betaTransusC: 1010,
+  },
+  'ti-6246': {
+    name: 'Ti-6246 (High-Strength Alpha-Beta)',
+    baseYield: 1180,
+    baseUTS: 1290,
+    baseElongation: 7.0,
+    baseResidualStress: 580,
+    baseFatigue: 440,
+    betaTransusC: 940,
+  },
+  'ti-10v-2fe-3al': {
+    name: 'Ti-10V-2Fe-3Al (Forging Near-Beta)',
+    baseYield: 1100,
+    baseUTS: 1220,
+    baseElongation: 8.5,
+    baseResidualStress: 540,
+    baseFatigue: 450,
+    betaTransusC: 800,
   },
   'ti-5553': {
     name: 'Ti-5553 (Near-Beta High Strength)',
@@ -182,14 +413,68 @@ const ALLOY_ROUTE_BASELINES: Record<string, AlloyRouteBaselines> = {
     baseFatigue: 430,
     betaTransusC: 860,
   },
-  'ti-grade-2': {
-    name: 'Ti Grade 2 (CP Unalloyed)',
-    baseYield: 410,
-    baseUTS: 520,
+  'ti-15mo': {
+    name: 'Ti-15Mo (Corrosion Beta)',
+    baseYield: 520,
+    baseUTS: 740,
     baseElongation: 22.0,
-    baseResidualStress: 280,
-    baseFatigue: 240,
-    betaTransusC: 882,
+    baseResidualStress: 390,
+    baseFatigue: 360,
+    betaTransusC: 800,
+  },
+  'ti-13nb-13zr': {
+    name: 'Ti-13Nb-13Zr (Low Modulus Bio)',
+    baseYield: 750,
+    baseUTS: 860,
+    baseElongation: 14.0,
+    baseResidualStress: 430,
+    baseFatigue: 410,
+    betaTransusC: 735,
+  },
+  'ti-tnzt': {
+    name: 'Ti-35Nb-7Zr-5Ta (TNZT)',
+    baseYield: 460,
+    baseUTS: 550,
+    baseElongation: 24.0,
+    baseResidualStress: 310,
+    baseFatigue: 310,
+    betaTransusC: 700,
+  },
+  'ti-35nb-7zr-5ta': {
+    name: 'Ti-35Nb-7Zr-5Ta (TNZT)',
+    baseYield: 460,
+    baseUTS: 550,
+    baseElongation: 24.0,
+    baseResidualStress: 310,
+    baseFatigue: 310,
+    betaTransusC: 700,
+  },
+  'ti-0-2pd': {
+    name: 'Ti-0.2Pd (Grade 7)',
+    baseYield: 310,
+    baseUTS: 380,
+    baseElongation: 21.0,
+    baseResidualStress: 290,
+    baseFatigue: 190,
+    betaTransusC: 913,
+  },
+  'ti-0.2pd': {
+    name: 'Ti-0.2Pd (Grade 7)',
+    baseYield: 310,
+    baseUTS: 380,
+    baseElongation: 21.0,
+    baseResidualStress: 290,
+    baseFatigue: 190,
+    betaTransusC: 913,
+  },
+  'ti-beta21s': {
+    name: 'Ti-Beta21S (Oxidation Resistant)',
+    baseYield: 860,
+    baseUTS: 980,
+    baseElongation: 13.0,
+    baseResidualStress: 480,
+    baseFatigue: 420,
+    betaTransusC: 807,
   },
   'ti-48al-2cr-2nb': {
     name: 'Gamma TiAl (Intermetallic)',
@@ -199,6 +484,15 @@ const ALLOY_ROUTE_BASELINES: Record<string, AlloyRouteBaselines> = {
     baseResidualStress: 650,
     baseFatigue: 310,
     betaTransusC: 1320,
+  },
+  'ti-811': {
+    name: 'Ti-8Al-1Mo-1V (Ti-811 High-Modulus)',
+    baseYield: 890,
+    baseUTS: 1010,
+    baseElongation: 12.0,
+    baseResidualStress: 510,
+    baseFatigue: 440,
+    betaTransusC: 1040,
   },
 };
 
@@ -289,7 +583,7 @@ export function MatSciCommandSections({
     const T0 = preheatTempC;
     const T_liquidus = alloyConstants.liquidusC;
     const T_solidus = alloyConstants.solidusC;
-    const T_beta = 995; // Typical alpha+beta transus for Ti-64
+    const T_beta = alloyConstants.betaTransusC ?? 995;
 
     // Peak center temperature approx from moving point source
     const r_spot_m = (activePreset.spotDiameterUm / 2) / 1e6;
@@ -699,32 +993,51 @@ export function MatSciCommandSections({
             {/* Alloy & Process Pickers */}
             <div className="flex flex-wrap items-center gap-3">
               <div>
-                <label className="text-[10px] font-mono text-[#7189a3] block mb-1">Target Alloy:</label>
+                <label className="text-[10px] font-mono text-[#7189a3] block mb-1">Target Alloy (All 20 Alloys):</label>
                 <select
                   value={selectedAlloyId}
                   onChange={(e) => setSelectedAlloyId(e.target.value)}
-                  className="bg-[#101112] border border-[#232426] text-xs font-mono text-white rounded-lg px-3 py-1.5 focus:border-[#50d8e9] focus:outline-none"
+                  className="bg-[#101112] border border-[#232426] text-xs font-mono text-white rounded-lg px-3 py-1.5 focus:border-[#50d8e9] focus:outline-none max-w-[280px]"
                 >
-                  <option value="ti-6al-4v">Ti-6Al-4V (Grade 5)</option>
-                  <option value="ti-6al-4v-eli">Ti-6Al-4V ELI (Grade 23)</option>
-                  <option value="ti-6242">Ti-6242 (High-Temp Creep)</option>
-                  <option value="ti-5553">Ti-5553 (Near-Beta)</option>
-                  <option value="ti-grade-2">Ti Grade 2 (CP Unalloyed)</option>
-                  <option value="ti-48al-2cr-2nb">Gamma TiAl (Intermetallic)</option>
+                  {ALL_TITANIUM_ALLOYS_CATALOG.map((group) => (
+                    <optgroup key={group.category} label={group.category} className="bg-[#18191c] text-[#50d8e9] font-bold">
+                      {group.items.map((item) => (
+                        <option key={item.id} value={item.id} className="bg-[#101112] text-white font-normal">
+                          {item.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-[10px] font-mono text-[#7189a3] block mb-1">AM Process Preset:</label>
+                <label className="text-[10px] font-mono text-[#7189a3] block mb-1">AM Process Preset (All Categories):</label>
                 <select
                   value={selectedProcessId}
                   onChange={(e) => handleProcessPresetChange(e.target.value)}
-                  className="bg-[#101112] border border-[#232426] text-xs font-mono text-[#50d8e9] font-bold rounded-lg px-3 py-1.5 focus:border-[#50d8e9] focus:outline-none"
+                  className="bg-[#101112] border border-[#232426] text-xs font-mono text-[#50d8e9] font-bold rounded-lg px-3 py-1.5 focus:border-[#50d8e9] focus:outline-none max-w-[320px]"
                 >
-                  <option value="pbf-lb">Laser PBF (L-PBF)</option>
-                  <option value="pbf-eb">Electron Beam PBF (EBM)</option>
-                  <option value="ded-lb">Laser DED (L-DED)</option>
-                  <option value="waam">Wire Arc AM (WAAM)</option>
+                  <optgroup label="Powder Bed Fusion (PBF)" className="bg-[#18191c] text-[#50d8e9] font-bold">
+                    <option value="pbf-lb" className="bg-[#101112] text-white font-normal">Laser PBF (L-PBF / SLM / DMLS)</option>
+                    <option value="pbf-eb" className="bg-[#101112] text-white font-normal">Electron Beam PBF (PBF-EB / EBM)</option>
+                  </optgroup>
+                  <optgroup label="Directed Energy Deposition (DED)" className="bg-[#18191c] text-[#50d8e9] font-bold">
+                    <option value="ded-lb" className="bg-[#101112] text-white font-normal">Laser Powder DED (LENS / Blown)</option>
+                    <option value="ded-wire" className="bg-[#101112] text-white font-normal">Wire Laser DED (WL-AM / Wire Fed)</option>
+                    <option value="csam" className="bg-[#101112] text-white font-normal">Cold Spray Kinetic AM (CSAM)</option>
+                  </optgroup>
+                  <optgroup label="Wire Arc Additive (WAAM)" className="bg-[#18191c] text-[#50d8e9] font-bold">
+                    <option value="waam" className="bg-[#101112] text-white font-normal">Wire Arc Additive (GMAW / Plasma WAAM)</option>
+                  </optgroup>
+                  <optgroup label="Sinter-Based &amp; Slurry AM" className="bg-[#18191c] text-[#50d8e9] font-bold">
+                    <option value="bjt" className="bg-[#101112] text-white font-normal">Metal Binder Jetting (MBJ + Sinter)</option>
+                    <option value="mex" className="bg-[#101112] text-white font-normal">Bound Metal Extrusion (MEX / FFF)</option>
+                    <option value="vat" className="bg-[#101112] text-white font-normal">Lithography Metal AM (VPP / LMM)</option>
+                  </optgroup>
+                  <optgroup label="Solid-State Sheet Lamination" className="bg-[#18191c] text-[#50d8e9] font-bold">
+                    <option value="sheet-lam" className="bg-[#101112] text-white font-normal">Ultrasonic Sheet Lamination (UAM)</option>
+                  </optgroup>
                 </select>
               </div>
             </div>
@@ -1013,18 +1326,21 @@ export function MatSciCommandSections({
 
             <div className="flex flex-wrap items-center gap-3">
               <div>
-                <label className="text-[10px] font-mono text-[#7189a3] block mb-1">Target Alloy:</label>
+                <label className="text-[10px] font-mono text-[#7189a3] block mb-1">Target Alloy (All 20 Alloys):</label>
                 <select
                   value={selectedRouteAlloy}
                   onChange={(e) => setSelectedRouteAlloy(e.target.value)}
-                  className="bg-[#101112] border border-[#232426] text-xs font-mono text-white rounded-lg px-3 py-1.5 focus:border-[#5E6BFF] focus:outline-none"
+                  className="bg-[#101112] border border-[#232426] text-xs font-mono text-white rounded-lg px-3 py-1.5 focus:border-[#5E6BFF] focus:outline-none max-w-[280px]"
                 >
-                  <option value="ti-6al-4v">Ti-6Al-4V (Grade 5)</option>
-                  <option value="ti-6al-4v-eli">Ti-6Al-4V ELI (Grade 23)</option>
-                  <option value="ti-6242">Ti-6242 (High-Temp Creep)</option>
-                  <option value="ti-5553">Ti-5553 (Near-Beta)</option>
-                  <option value="ti-grade-2">Ti Grade 2 (CP Unalloyed)</option>
-                  <option value="ti-48al-2cr-2nb">Gamma TiAl (Intermetallic)</option>
+                  {ALL_TITANIUM_ALLOYS_CATALOG.map((group) => (
+                    <optgroup key={group.category} label={group.category} className="bg-[#18191c] text-[#bec2ff] font-bold">
+                      {group.items.map((item) => (
+                        <option key={item.id} value={item.id} className="bg-[#101112] text-white font-normal">
+                          {item.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 
