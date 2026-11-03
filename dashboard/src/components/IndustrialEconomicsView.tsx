@@ -104,7 +104,7 @@ export const IndustrialEconomicsView: React.FC<IndustrialEconomicsViewProps> = (
             <span className="text-xs font-sans font-normal text-[#64748b]">cm³/hr</span>
           </div>
           <div className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
-            ✓ Based on {laserPowerW}W &amp; {scanSpeedMmS}mm/s
+            ✓ Based on {laserPowerW} W &amp; {scanSpeedMmS} mm/s
           </div>
         </div>
 

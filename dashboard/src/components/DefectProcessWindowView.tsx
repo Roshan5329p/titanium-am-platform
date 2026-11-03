@@ -130,19 +130,21 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
         {/* Left: 2D Process Window Map (7 Cols) */}
         <div className="lg:col-span-7 bg-[#0b1017] border border-[#1d2736] rounded-xl p-5 shadow-xl flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+              <div className="min-w-0 pr-2">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-[#50d8e9]" />
-                  2D Defect Process Window (King's Enthalpy Criterion)
+                  <Sliders className="w-4 h-4 text-[#50d8e9] shrink-0" />
+                  <span>2D Defect Process Window (King's Enthalpy Criterion)</span>
                 </h4>
-                <p className="text-[11px] text-[#7891aa]">
+                <p className="text-[11px] text-[#7891aa] mt-0.5 leading-relaxed">
                   Regimes dynamically calibrated for {alloyName} with melt pool depth-to-width ratio &amp; enthalpy criteria
                 </p>
               </div>
-              <div className="text-right">
-                <span className="text-[11px] font-mono text-[#50d8e9] bg-[#101b29] px-2.5 py-1 rounded border border-[#1b344d]">
-                  P={laserPowerW}W • v={scanSpeedMmS}mm/s
+              <div className="shrink-0 self-start sm:self-center">
+                <span className="text-[11px] font-mono font-semibold text-[#50d8e9] bg-[#0c1622] px-3 py-1.5 rounded-lg border border-[#1b344d] whitespace-nowrap shadow-sm inline-flex items-center gap-2">
+                  <span>P = {laserPowerW} W</span>
+                  <span className="text-[#3b597a]">•</span>
+                  <span>v = {scanSpeedMmS} mm/s</span>
                 </span>
               </div>
             </div>
@@ -371,7 +373,7 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
                 <span className="w-2.5 h-2.5 rounded-full bg-[#eab308]" /> Balling
               </span>
             </div>
-            <span className="font-mono text-[#50d8e9]">Target: {laserPowerW}W @ {scanSpeedMmS}mm/s</span>
+            <span className="font-mono text-[#50d8e9] whitespace-nowrap">Target: {laserPowerW} W @ {scanSpeedMmS} mm/s</span>
           </div>
         </div>
 
