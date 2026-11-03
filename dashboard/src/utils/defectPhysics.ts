@@ -111,48 +111,61 @@ export function calculateDefectRegime(
     Math.sqrt((params.absorptivity * P) / (params.densityKgM3 * params.specificHeatJPerKgK * deltaT * v)) * 1e6 * 0.28
   ));
 
+  // King's Normalized Enthalpy Keyhole Threshold for Ti-6Al-4V (King et al. 2014 Nature Comm: ΔH/hs > 26–28)
+  const keyholeThreshold = 26.0;
+
   // Depth in conduction mode vs keyholing
   let poolDepthUm: number;
-  if (normalizedEnthalpy > 6.0) {
-    // Keyhole threshold reached: depth scales rapidly with normalized enthalpy
-    poolDepthUm = poolWidthUm * (0.55 + 0.18 * (normalizedEnthalpy - 5.5));
+  if (normalizedEnthalpy > keyholeThreshold) {
+    // Keyhole threshold exceeded: vapor recoil pressure drills a deep narrow keyhole
+    const excess = normalizedEnthalpy - keyholeThreshold;
+    poolDepthUm = poolWidthUm * (0.65 + 0.045 * excess);
   } else {
-    // Conduction mode: shallow, semicircular pool
-    poolDepthUm = poolWidthUm * 0.42;
+    // Conduction mode: shallow, stable melt track (aspect ratio 0.35 to 0.55)
+    const conductionProgress = Math.min(1, Math.max(0, (normalizedEnthalpy - 6.0) / (keyholeThreshold - 6.0)));
+    poolDepthUm = poolWidthUm * (0.35 + 0.18 * conductionProgress);
   }
 
-  const aspectRatio = poolWidthUm > 0 ? poolDepthUm / poolWidthUm : 0.4;
+  const aspectRatio = poolWidthUm > 0 ? poolDepthUm / poolWidthUm : 0.42;
 
   // Linear Energy Density (J/mm)
   const linearEnergyJPerMm = P / scanSpeedMmS;
 
   // Defect Risk Calculations:
-  // 1. Keyholing Risk: Triggered by excessive normalized enthalpy (H > 6.0) and high aspect ratio (d/w > 0.85)
+  // 1. Keyholing Risk: Triggered when normalized enthalpy H > 26 or aspect ratio > 0.75
   let keyholeRiskPct = 0;
-  if (normalizedEnthalpy > 5.5 || aspectRatio > 0.8) {
-    const excess = Math.max(normalizedEnthalpy - 5.5, (aspectRatio - 0.75) * 6);
-    keyholeRiskPct = Math.min(100, Math.round(excess * 22));
+  if (normalizedEnthalpy > keyholeThreshold || aspectRatio > 0.75) {
+    const excess = Math.max((normalizedEnthalpy - keyholeThreshold) / 6, (aspectRatio - 0.75) * 4);
+    keyholeRiskPct = Math.min(100, Math.round(40 + excess * 50));
+  } else {
+    // Baseline safe minimal risk in conduction mode
+    keyholeRiskPct = Math.max(2, Math.round((normalizedEnthalpy / keyholeThreshold) * 12));
   }
 
-  // 2. Lack of Fusion Risk: Triggered when melt pool depth is less than 1.5 * layer thickness, or hatch spacing > 0.8 * pool width
+  // 2. Lack of Fusion Risk: Triggered when enthalpy is low (H < 7.5), depth < 1.35 * layer thickness, or overlap < 1.15
   let lackOfFusionRiskPct = 0;
   const depthToLayerRatio = poolDepthUm / layerThicknessUm;
   const overlapRatio = poolWidthUm / hatchSpacingUm;
 
-  if (depthToLayerRatio < 1.45 || overlapRatio < 1.15 || ved < 45) {
-    const depthDeficit = Math.max(0, 1.45 - depthToLayerRatio) * 45;
-    const overlapDeficit = Math.max(0, 1.15 - overlapRatio) * 40;
-    const vedDeficit = Math.max(0, (45 - ved) / 45) * 35;
-    lackOfFusionRiskPct = Math.min(100, Math.round(depthDeficit + overlapDeficit + vedDeficit));
+  if (normalizedEnthalpy < 7.5 || depthToLayerRatio < 1.35 || overlapRatio < 1.15 || ved < 45) {
+    const enthalpyDeficit = Math.max(0, (7.5 - normalizedEnthalpy) / 7.5) * 40;
+    const depthDeficit = Math.max(0, 1.35 - depthToLayerRatio) * 35;
+    const overlapDeficit = Math.max(0, 1.15 - overlapRatio) * 30;
+    const vedDeficit = Math.max(0, (45 - ved) / 45) * 30;
+    lackOfFusionRiskPct = Math.min(100, Math.round(Math.max(enthalpyDeficit, depthDeficit) + overlapDeficit + vedDeficit));
+  } else {
+    lackOfFusionRiskPct = Math.max(3, Math.round((1 - Math.min(1, depthToLayerRatio / 2.5)) * 10));
   }
 
-  // 3. Balling / Humpiing Risk: Plateau-Rayleigh instability occurs when melt pool length / width > pi (~3.14)
+  // 3. Balling / Humping Risk: Plateau-Rayleigh instability occurs when melt pool length / width > pi (~3.14)
   // High scan speed stretches the melt pool length: L ~ v * (poolWidth^2 / alpha)
   let ballingRiskPct = 0;
-  const lengthToWidthRatio = 1.2 + (scanSpeedMmS / 450) * (beamSpotDiameterUm / 100);
-  if (lengthToWidthRatio > 2.8 || scanSpeedMmS > 1500) {
-    const excess = Math.max(lengthToWidthRatio - 2.8, (scanSpeedMmS - 1400) / 400);
-    ballingRiskPct = Math.min(100, Math.round(excess * 38));
+  const lengthToWidthRatio = 1.2 + (scanSpeedMmS / 480) * (beamSpotDiameterUm / 100);
+  if (lengthToWidthRatio > 3.14 || scanSpeedMmS > 1650) {
+    const excess = Math.max(lengthToWidthRatio - 3.14, (scanSpeedMmS - 1650) / 350);
+    ballingRiskPct = Math.min(100, Math.round(45 + excess * 45));
+  } else {
+    ballingRiskPct = Math.max(3, Math.round((scanSpeedMmS / 1650) * 12));
   }
 
   // Determine Dominant Regime
@@ -167,7 +180,7 @@ export function calculateDefectRegime(
     regimeLabel = 'Keyholing Porosity Regime';
     regimeColor = '#ef4444'; // red
     regimeDescription = 'Vapor recoil pressure creates a deep, unstable vapor depression. Capillary collapse traps spherical gas voids at the root.';
-    const deltaSpeed = Math.round(Math.max(100, (normalizedEnthalpy - 5.0) * 120));
+    const deltaSpeed = Math.round(Math.max(100, (normalizedEnthalpy - 24.0) * 80));
     const deltaPower = Math.round(Math.max(25, (aspectRatio - 0.7) * 90));
     recommendedFix = `Risk of vapor depression keyhole collapse. Increase scan speed by +${deltaSpeed} mm/s or lower laser power by -${deltaPower} W to transition into stable conduction mode.`;
   } else if (lackOfFusionRiskPct > 40 && lackOfFusionRiskPct >= ballingRiskPct) {
@@ -185,16 +198,18 @@ export function calculateDefectRegime(
     recommendedFix = `Melt pool length-to-width ratio exceeds Rayleigh-Plateau threshold (${lengthToWidthRatio.toFixed(2)}). Reduce scan speed below ${(scanSpeedMmS * 0.75).toFixed(0)} mm/s.`;
   }
 
-  const overallPorosityRiskPct = Math.min(99, Math.round(
-    Math.max(keyholeRiskPct, lackOfFusionRiskPct, ballingRiskPct) * 0.75 +
-    (keyholeRiskPct * lackOfFusionRiskPct) / 300
-  ));
+  const overallPorosityRiskPct = regime === 'conduction'
+    ? Math.max(3, Math.round((keyholeRiskPct + lackOfFusionRiskPct + ballingRiskPct) / 3))
+    : Math.min(99, Math.round(
+        Math.max(keyholeRiskPct, lackOfFusionRiskPct, ballingRiskPct) * 0.8 +
+        (keyholeRiskPct * lackOfFusionRiskPct) / 300
+      ));
 
   // Safe operating boundaries for conduction mode for this alloy
   const minConductionSpeed = Math.round(Math.max(400, P * 2.2));
-  const maxConductionSpeed = Math.round(Math.min(1600, P * 6.5));
-  const minConductionPower = Math.round(Math.max(100, scanSpeedMmS * 0.16));
-  const maxConductionPower = Math.round(Math.min(420, scanSpeedMmS * 0.42));
+  const maxConductionSpeed = Math.round(Math.min(1600, P * 4.8));
+  const minConductionPower = Math.round(Math.max(100, scanSpeedMmS * 0.20));
+  const maxConductionPower = Math.round(Math.min(420, scanSpeedMmS * 0.35));
 
   return {
     regime,

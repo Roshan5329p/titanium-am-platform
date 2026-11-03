@@ -69,16 +69,27 @@ function cleanMathSyntax(raw: string): string {
   if (!raw) return '';
   return raw
     .replace(/\\approx/g, '≈')
+    .replace(/\\sim/g, '~')
     .replace(/\\ge/g, '≥')
     .replace(/\\le/g, '≤')
+    .replace(/\\ne/g, '≠')
+    .replace(/\\pm/g, '±')
+    .replace(/\\times/g, '×')
+    .replace(/\\cdot/g, '·')
     .replace(/\\alpha'/g, "α'")
     .replace(/\\alpha/g, 'α')
     .replace(/\\beta/g, 'β')
-    .replace(/\\mu/g, 'μ')
+    .replace(/\\gamma/g, 'γ')
+    .replace(/\\delta/g, 'δ')
     .replace(/\\Delta/g, 'Δ')
-    .replace(/\\cdot/g, '·')
-    .replace(/\\pm/g, '±')
-    .replace(/\\times/g, '×')
+    .replace(/\\mu/g, 'μ')
+    .replace(/\\sigma/g, 'σ')
+    .replace(/\\rho/g, 'ρ')
+    .replace(/\\lambda/g, 'λ')
+    .replace(/\\theta/g, 'θ')
+    .replace(/\\pi/g, 'π')
+    .replace(/\\sqrt/g, '√')
+    .replace(/\\infty/g, '∞')
     .replace(/\\%/g, '%')
     .replace(/\\text\{([^}]+)\}/g, '$1')
     .replace(/\^3/g, '³')
@@ -86,6 +97,7 @@ function cleanMathSyntax(raw: string): string {
     .replace(/\^5/g, '⁵')
     .replace(/\^\circ/g, '°')
     .replace(/\$([^$]+)\$/g, '$1')
+    .replace(/\$/g, '')
     .trim();
 }
 
@@ -296,7 +308,7 @@ export const MatSciCopilotDrawer: React.FC<MatSciCopilotDrawerProps> = ({
       const lower = queryText.toLowerCase();
 
       if (lower.includes('keyhole') || lower.includes('keyholing')) {
-        aiResponseText = `**Keyholing Porosity Remediation:**\n\nKeyhole pore formation occurs when the **Normalized Enthalpy (H)** exceeds **≈ 5.5** and the melt pool aspect ratio **(d/w) exceeds 0.85**. The intense recoil pressure of vaporizing titanium pushes molten metal aside, creating an unstable vapor depression that collapses and traps argon gas voids.\n\n**Action Plan:**\n1. **Increase Scan Speed:** Boost scan speed v from 950 mm/s to **1,250 mm/s** to shorten local laser dwell time.\n2. **Moderate Laser Power:** Adjust power P to **220 W**.\n3. **Resulting Energy Density:** Maintains VED at **≈ 68 J/mm³** (fully dense conduction mode, relative density > 99.85%).`;
+        aiResponseText = `**Keyholing Porosity Remediation:**\n\nKeyhole pore formation occurs when King's **Normalized Enthalpy (H = ΔH/hs)** exceeds **26.0** (safe conduction window: 8.0 – 26.0) and the melt pool depth-to-width aspect ratio **(d/w) exceeds 0.80**. The intense recoil pressure of vaporizing titanium pushes molten metal aside, creating an unstable vapor depression that collapses and traps argon gas voids.\n\n**Action Plan:**\n1. **Increase Scan Speed:** Boost scan speed v from 950 mm/s to **1,250 mm/s** to shorten local laser dwell time.\n2. **Moderate Laser Power:** Adjust power P to **220 W**.\n3. **Resulting Energy Density:** Maintains VED at **≈ 68 J/mm³** (fully dense conduction mode, relative density > 99.85%).`;
         recommendedParams = {
           laserPowerW: 220,
           scanSpeedMmS: 1250,

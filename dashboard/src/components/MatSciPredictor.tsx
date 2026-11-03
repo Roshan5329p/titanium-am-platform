@@ -408,7 +408,7 @@ export function MatSciPredictor({
 
     // 2. Fire telemetry sync in background if backend server is available
     try {
-      const response = await fetch(`/api/stats/${event}`, {
+      const response = await fetch('/api/stats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -459,7 +459,7 @@ export function MatSciPredictor({
     // 2. Sync with backend API in background if available
     const syncWithBackend = async () => {
       try {
-        const response = await fetch('/api/stats/visit', { method: 'POST' });
+        const response = await fetch('/api/stats');
         if (response.ok) {
           const stats = await response.json() as UsageStats;
           if (active && stats && typeof stats.totalVisitors === 'number') {
@@ -1437,7 +1437,7 @@ export function MatSciPredictor({
           <main className="lg:col-span-9 min-w-0 max-w-full space-y-5">
 
             {/* TAB NAVIGATION HEADER matching screenshots */}
-            <div className="border-b border-[#1c2430] w-full max-w-full flex flex-nowrap overflow-x-auto gap-2 text-xs sm:text-sm font-medium pb-1 scrollbar-thin">
+            <div className="border-b border-[#1c2430] w-full max-w-full flex flex-nowrap overflow-x-auto gap-2 text-xs sm:text-sm font-medium pb-1 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <button
                 onClick={() => setActiveTab('predictions')}
                 className={`px-4 py-2.5 rounded-t-lg transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${

@@ -189,10 +189,10 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
                 {/* Zone 1: Keyhole Regime (High Power, Low to Moderate Speed) */}
                 <polygon
                   points={`
-                    ${scaleX(minSpeed)},${scaleY(minPower + 180)}
+                    ${scaleX(minSpeed)},${scaleY(280)}
                     ${scaleX(minSpeed)},${scaleY(maxPower)}
-                    ${scaleX(1500)},${scaleY(maxPower)}
-                    ${scaleX(700)},${scaleY(minPower + 220)}
+                    ${scaleX(800)},${scaleY(maxPower)}
+                    ${scaleX(500)},${scaleY(420)}
                   `}
                   fill="url(#keyholeGrad)"
                   stroke="#ef4444"
@@ -204,8 +204,9 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
                 <polygon
                   points={`
                     ${scaleX(minSpeed)},${scaleY(minPower)}
-                    ${scaleX(minSpeed)},${scaleY(minPower + 60)}
-                    ${scaleX(maxSpeed)},${scaleY(minPower + 240)}
+                    ${scaleX(minSpeed)},${scaleY(65)}
+                    ${scaleX(1600)},${scaleY(240)}
+                    ${scaleX(maxSpeed)},${scaleY(280)}
                     ${scaleX(maxSpeed)},${scaleY(minPower)}
                   `}
                   fill="url(#lofGrad)"
@@ -217,10 +218,10 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
                 {/* Zone 3: Balling (Extreme Speed) */}
                 <polygon
                   points={`
-                    ${scaleX(1600)},${scaleY(minPower)}
-                    ${scaleX(1500)},${scaleY(maxPower)}
+                    ${scaleX(1600)},${scaleY(240)}
+                    ${scaleX(1600)},${scaleY(maxPower)}
                     ${scaleX(maxSpeed)},${scaleY(maxPower)}
-                    ${scaleX(maxSpeed)},${scaleY(minPower)}
+                    ${scaleX(maxSpeed)},${scaleY(280)}
                   `}
                   fill="url(#ballingGrad)"
                   stroke="#eab308"
@@ -231,11 +232,12 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
                 {/* Zone 4: Stable Conduction Window */}
                 <polygon
                   points={`
-                    ${scaleX(minSpeed)},${scaleY(minPower + 60)}
-                    ${scaleX(minSpeed)},${scaleY(minPower + 180)}
-                    ${scaleX(700)},${scaleY(minPower + 220)}
-                    ${scaleX(1500)},${scaleY(maxPower)}
-                    ${scaleX(1550)},${scaleY(minPower + 240)}
+                    ${scaleX(minSpeed)},${scaleY(65)}
+                    ${scaleX(minSpeed)},${scaleY(280)}
+                    ${scaleX(500)},${scaleY(420)}
+                    ${scaleX(800)},${scaleY(maxPower)}
+                    ${scaleX(1600)},${scaleY(maxPower)}
+                    ${scaleX(1600)},${scaleY(240)}
                   `}
                   fill="url(#conductionGrad)"
                   stroke="#10b981"
@@ -244,16 +246,16 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
                 />
 
                 {/* Zone Labels */}
-                <text x={scaleX(350)} y={scaleY(380)} fill="#f87171" fontSize="11" fontWeight="bold">
+                <text x={scaleX(300)} y={scaleY(420)} fill="#f87171" fontSize="11" fontWeight="bold">
                   KEYHOLING REGIME
                 </text>
-                <text x={scaleX(650)} y={scaleY(240)} fill="#34d399" fontSize="11" fontWeight="bold">
+                <text x={scaleX(750)} y={scaleY(300)} fill="#34d399" fontSize="11" fontWeight="bold">
                   STABLE CONDUCTION WINDOW
                 </text>
-                <text x={scaleX(1150)} y={scaleY(120)} fill="#fb923c" fontSize="10" fontWeight="bold">
+                <text x={scaleX(1100)} y={scaleY(110)} fill="#fb923c" fontSize="10" fontWeight="bold">
                   LACK OF FUSION
                 </text>
-                <text x={scaleX(1800)} y={scaleY(320)} fill="#facc15" fontSize="10" fontWeight="bold">
+                <text x={scaleX(1850)} y={scaleY(320)} fill="#facc15" fontSize="10" fontWeight="bold">
                   BALLING
                 </text>
 
@@ -441,9 +443,9 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
 
             {/* Normalized Enthalpy Badge */}
             <div className="pt-2 border-t border-[#192433] flex items-center justify-between text-xs">
-              <span className="text-[#7891aa]">Normalized Enthalpy ($H$):</span>
+              <span className="text-[#7891aa]">Normalized Enthalpy (ΔH/h<sub>s</sub>):</span>
               <span className="font-mono font-semibold text-white bg-[#131e2b] px-2 py-0.5 rounded border border-[#22354a]">
-                H = {defectData.normalizedEnthalpy} (Safe: 2.8 – 5.5)
+                H = {defectData.normalizedEnthalpy} (Safe: 8.0 – 26.0)
               </span>
             </div>
           </div>
