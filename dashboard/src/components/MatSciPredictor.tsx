@@ -2054,7 +2054,7 @@ export function MatSciPredictor({
                             </tr>
                             <tr className="hover:bg-[#151c27]">
                               <td className="py-2 text-[#7d93ac]">Normalized enthalpy ΔH / h<sub>s</sub></td>
-                              <td className="py-2 font-mono font-bold text-amber-400 text-right">{(prediction.keyholeRatio * 28).toFixed(1)}</td>
+                              <td className="py-2 font-mono font-bold text-amber-400 text-right">{prediction.normalizedEnthalpy.toFixed(1)}</td>
                             </tr>
                             <tr className="hover:bg-[#151c27]">
                               <td className="py-2 text-[#7d93ac]">Porosity (analytical)</td>
@@ -2642,9 +2642,9 @@ export function MatSciPredictor({
                 laserPowerW={laserPower}
                 scanSpeedMmS={scanSpeed}
                 coolingRateKPerS={prediction.coolingRateKs}
-                residualStressMPa={heatTreatment === 'None' || heatTreatment === 'As-built' ? 380 : heatTreatment === 'Stress-relieved' ? 35 : heatTreatment === 'HIP' ? 15 : 45}
+                residualStressMPa={prediction.residualStressMPa}
                 hardnessHV={prediction.hybridHardnessHV}
-                elongationPct={heatTreatment === 'HIP' ? 13.8 : heatTreatment === 'Annealed' || heatTreatment === 'Stress-relieved' ? 11.2 : heatTreatment === 'Solution-Aged' ? 10.5 : 7.4}
+                elongationPct={prediction.elongationPct}
               />
             )}
 
@@ -2653,12 +2653,12 @@ export function MatSciPredictor({
               <QualificationAuditView
                 alloyId={selectedAlloyId}
                 alloyName={TITANIUM_ALLOYS.find(a => a.id === selectedAlloyId)?.name || selectedAlloyId}
-                yieldStrengthMPa={Math.round(prediction.estimatedUTSMPa * 0.91)}
+                yieldStrengthMPa={prediction.yieldStrengthMPa}
                 utsMPa={prediction.estimatedUTSMPa}
-                elongationPct={heatTreatment === 'HIP' ? 13.8 : heatTreatment === 'Annealed' || heatTreatment === 'Stress-relieved' ? 11.2 : heatTreatment === 'Solution-Aged' ? 10.5 : 7.4}
+                elongationPct={prediction.elongationPct}
                 relativeDensityPct={prediction.relativeDensityPct}
-                residualStressMPa={heatTreatment === 'None' || heatTreatment === 'As-built' ? 380 : heatTreatment === 'Stress-relieved' ? 35 : heatTreatment === 'HIP' ? 15 : 45}
-                fatigueEnduranceMPa={Math.round(prediction.estimatedUTSMPa * 0.58) + (heatTreatment === 'HIP' ? 80 : 0)}
+                residualStressMPa={prediction.residualStressMPa}
+                fatigueEnduranceMPa={prediction.fatigueEnduranceMPa}
                 heatTreatmentRoute={heatTreatment}
               />
             )}
@@ -5358,6 +5358,28 @@ export function MatSciPredictor({
                             </g>
                           );
                         })}
+
+                        {/* Live Operating Point on Parity Plot */}
+                        {(() => {
+                          const liveHV = prediction.hybridHardnessHV;
+                          const liveX = 90 + ((Math.min(450, Math.max(200, liveHV)) - 200) / 250) * 430;
+                          const liveY = 335 - ((Math.min(450, Math.max(200, liveHV)) - 200) / 250) * 300;
+                          return (
+                            <g className="transition-all duration-300">
+                              <circle cx={liveX} cy={liveY} r="12" fill="#ef4444" opacity="0.35" className="animate-ping" />
+                              <polygon
+                                points={`${liveX},${liveY - 9} ${liveX + 3},${liveY - 3} ${liveX + 9},${liveY - 3} ${liveX + 4},${liveY + 2} ${liveX + 6},${liveY + 8} ${liveX},${liveY + 4} ${liveX - 6},${liveY + 8} ${liveX - 4},${liveY + 2} ${liveX - 9},${liveY - 3} ${liveX - 3},${liveY - 3}`}
+                                fill="#ef4444"
+                                stroke="#ffffff"
+                                strokeWidth="1.5"
+                              />
+                              <rect x={liveX - 45} y={liveY - 26} width="90" height="17" rx="3" fill="#0f1722" stroke="#ef4444" strokeWidth="0.8" />
+                              <text x={liveX} y={liveY - 14} fill="#ffffff" fontSize="9" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                                Live: {liveHV} HV
+                              </text>
+                            </g>
+                          );
+                        })()}
 
                         {/* Axis */}
                         <text x="305" y="390" fill="#c2d0df" fontSize="14" textAnchor="middle" fontWeight="bold">

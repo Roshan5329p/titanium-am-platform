@@ -4,6 +4,8 @@
  * Keyholing threshold, Lack-of-Fusion boundary, and Plateau-Rayleigh balling instabilities.
  */
 
+import { ALLOY_THERMAL_PROPERTIES } from './amPhysicsEngine';
+
 export interface DefectAnalysisResult {
   regime: 'conduction' | 'keyhole' | 'lack-of-fusion' | 'balling';
   regimeLabel: string;
@@ -87,7 +89,18 @@ export function calculateDefectRegime(
   beamSpotDiameterUm: number,
   preheatTempC = 25
 ): DefectAnalysisResult {
-  const params = ALLOY_PHYSICAL_PARAMS[alloyId] || ALLOY_PHYSICAL_PARAMS['ti-6al-4v'];
+  const thermalProps = ALLOY_THERMAL_PROPERTIES[alloyId];
+  const params: AlloyThermalParams = thermalProps
+    ? {
+        absorptivity: thermalProps.laserAbsorptivity || 0.35,
+        densityKgM3: thermalProps.density || 4430,
+        specificHeatJPerKgK: thermalProps.specificHeat || 526,
+        meltingTempC: thermalProps.liquidusC || 1660,
+        thermalDiffusivityM2S:
+          (thermalProps.thermalConductivity || 8.0) /
+          ((thermalProps.density || 4430) * (thermalProps.specificHeat || 526)),
+      }
+    : ALLOY_PHYSICAL_PARAMS[alloyId] || ALLOY_PHYSICAL_PARAMS['ti-6al-4v'];
 
   // Convert inputs to SI units
   const P = Math.max(10, laserPowerW);

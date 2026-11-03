@@ -44,11 +44,18 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
   const graphWidth = svgWidth - padding.left - padding.right;
   const graphHeight = svgHeight - padding.top - padding.bottom;
 
-  // Domain: Scan Speed (200 to 2200 mm/s), Laser Power (50 to 500 W)
-  const minSpeed = 200;
-  const maxSpeed = 2200;
-  const minPower = 50;
-  const maxPower = 500;
+  // Domain: Dynamically frames user parameters while preserving standard 200–2200 mm/s & 50–500 W viewport
+  const minSpeed = Math.min(200, Math.floor(scanSpeedMmS * 0.8));
+  const maxSpeed = Math.max(2200, Math.ceil((scanSpeedMmS * 1.2) / 200) * 200);
+  const minPower = Math.min(50, Math.floor(laserPowerW * 0.8));
+  const maxPower = Math.max(500, Math.ceil((laserPowerW * 1.2) / 50) * 50);
+
+  const speedTicks = [0.25, 0.5, 0.75, 1.0].map((f) =>
+    Math.round((minSpeed + f * (maxSpeed - minSpeed)) / 100) * 100
+  );
+  const powerTicks = [0.2, 0.4, 0.6, 0.8, 1.0].map((f) =>
+    Math.round((minPower + f * (maxPower - minPower)) / 50) * 50
+  );
 
   const scaleX = (speed: number) =>
     padding.left + ((Math.min(maxSpeed, Math.max(minSpeed, speed)) - minSpeed) / (maxSpeed - minSpeed)) * graphWidth;
@@ -278,7 +285,7 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
                 />
 
                 {/* X-Axis Ticks */}
-                {[500, 1000, 1500, 2000].map((spd) => (
+                {speedTicks.map((spd) => (
                   <g key={`tx-${spd}`} transform={`translate(${scaleX(spd)}, ${padding.top + graphHeight + 14})`}>
                     <text fill="#64748b" fontSize="9" textAnchor="middle" fontFamily="monospace">
                       {spd}
@@ -297,7 +304,7 @@ export const DefectProcessWindowView: React.FC<DefectProcessWindowViewProps> = (
                 </text>
 
                 {/* Y-Axis Ticks */}
-                {[100, 200, 300, 400, 500].map((pwr) => (
+                {powerTicks.map((pwr) => (
                   <g key={`ty-${pwr}`} transform={`translate(${padding.left - 8}, ${scaleY(pwr) + 3})`}>
                     <text fill="#64748b" fontSize="9" textAnchor="end" fontFamily="monospace">
                       {pwr}

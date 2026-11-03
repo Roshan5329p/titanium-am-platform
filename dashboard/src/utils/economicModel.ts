@@ -5,6 +5,8 @@
  * machine amortization, commercial scrap-prevention ROI, and carbon footprint (ESG).
  */
 
+import { ALLOY_THERMAL_PROPERTIES } from './amPhysicsEngine';
+
 export interface EconomicCalculationParams {
   alloyId: string;
   processId: string;
@@ -88,7 +90,9 @@ export function calculateIndustrialEconomics(
     powderRecycleRatePct = 85,
   } = params;
 
-  const density = ALLOY_DENSITIES[alloyId] || 4.43;
+  const density = ALLOY_THERMAL_PROPERTIES[alloyId]?.density
+    ? ALLOY_THERMAL_PROPERTIES[alloyId].density / 1000
+    : ALLOY_DENSITIES[alloyId] || 4.43;
   const powderCostPerKg = ALLOY_POWDER_COST_PER_KG[alloyId] || 240;
 
   // 1. Volumetric Build Rate (VBR in cm^3 / hr)

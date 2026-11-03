@@ -21,6 +21,8 @@ export interface AlloyThermalConstants {
   cellSpacingFactor: number; // a in lambda = a * (dT/dt)^-n
   cellSpacingExponent: number; // n
   nominalUTS: number; // MPa
+  nominalYieldMPa?: number; // MPa (0.2% offset)
+  nominalElongationPct?: number; // % ductility at fracture
 }
 
 export const ALLOY_THERMAL_PROPERTIES: Record<string, AlloyThermalConstants> = {
@@ -511,6 +513,11 @@ export interface PredictionResult {
   svmHardnessHV?: number;
   rockwellHRC: string;
   estimatedUTSMPa: number;
+  yieldStrengthMPa: number;
+  elongationPct: number;
+  residualStressMPa: number;
+  fatigueEnduranceMPa: number;
+  normalizedEnthalpy: number;
   modelsTable: ModelPredictionRow[];
   microstructurePhases: string;
   solidificationMorphology: string;
@@ -1572,6 +1579,73 @@ export function calculateAmPredictions(
   else if (grRatio > 1e9) solidificationMorphology = 'Cellular';
   else if (grRatio < 1e6) solidificationMorphology = 'Equiaxed Dendritic';
 
+  // 11. Physics-calibrated Yield Strength (MPa) based on alloy metallurgy & heat treatment phase state
+  const baseYield = props.nominalYieldMPa || Math.round(props.nominalUTS * 0.88);
+  const yieldRatio = props.nominalUTS > 0 ? baseYield / props.nominalUTS : 0.88;
+  let yieldRatioHT = yieldRatio;
+  if (params.heatTreatment === 'None' || params.heatTreatment === 'As-built') {
+    yieldRatioHT = isCP ? 0.74 : 0.93; // Martensitic acicular alpha' has high yield ratio
+  } else if (params.heatTreatment === 'Stress-relieved') {
+    yieldRatioHT = isCP ? 0.73 : 0.90;
+  } else if (params.heatTreatment === 'Annealed') {
+    yieldRatioHT = isCP ? 0.72 : 0.88;
+  } else if (params.heatTreatment === 'HIP') {
+    yieldRatioHT = isCP ? 0.70 : 0.87; // Recrystallized ductile grains
+  } else if (params.heatTreatment === 'Solution-Aged') {
+    yieldRatioHT = isCP ? 0.78 : 0.95; // Secondary alpha precipitate hardening
+  }
+  const yieldStrengthMPa = Math.round(estimatedUTSMPa * yieldRatioHT);
+
+  // 12. Ductility / Tensile Elongation at Fracture (%)
+  // Physically derived from alloy baseline, heat treatment condition, cooling rate grain size, and pore knockdown
+  const baseElongation = props.nominalElongationPct || (isTiAl ? 1.8 : isCP ? 22 : 14);
+  let htElongationMultiplier = 1.0;
+  if (params.heatTreatment === 'None' || params.heatTreatment === 'As-built') {
+    htElongationMultiplier = isCP ? 0.85 : isTiAl ? 0.75 : 0.60;
+  } else if (params.heatTreatment === 'Stress-relieved') {
+    htElongationMultiplier = isCP ? 0.92 : 0.82;
+  } else if (params.heatTreatment === 'Annealed') {
+    htElongationMultiplier = isCP ? 0.98 : 0.96;
+  } else if (params.heatTreatment === 'HIP') {
+    htElongationMultiplier = isTiAl ? 1.10 : 1.22; // Void closure and grain recrystallization
+  } else if (params.heatTreatment === 'Solution-Aged') {
+    htElongationMultiplier = 0.78;
+  }
+
+  // Porosity Knockdown: Micro-pores act as stress concentrators that drastically reduce tensile elongation
+  const densityFraction = Math.max(0.5, Math.min(1.0, relativeDensity / 100));
+  const porosityKnockdown = Math.pow(densityFraction, 4.8);
+  const coolingRateDuctilityFactor = coolingRateKs > 1e5 ? 0.90 : 1.0;
+  const elongationPct = parseFloat(
+    Math.max(0.4, baseElongation * htElongationMultiplier * porosityKnockdown * coolingRateDuctilityFactor).toFixed(1)
+  );
+
+  // 13. Internal Residual Macrostress (MPa)
+  // Temperature Gradient Mechanism (TGM): Governed by thermal gradient G, preheat temperature T0, alloy yield strength, and post-weld stress relief
+  const betaTransus = props.betaTransusC || 995;
+  const preheatReliefFactor = Math.max(0.08, 1 - Math.min(1, Math.max(0, (T0 - 25) / Math.max(200, betaTransus - 25))));
+  const gradientStressFactor = Math.min(1.0, 0.40 + 0.30 * Math.min(2.0, thermalGradientG / 1e6));
+  const asBuiltResidualStress = Math.min(yieldStrengthMPa, Math.round(yieldStrengthMPa * gradientStressFactor * preheatReliefFactor));
+
+  let residualStressMPa = asBuiltResidualStress;
+  if (params.heatTreatment === 'Stress-relieved') {
+    residualStressMPa = Math.round(asBuiltResidualStress * 0.09); // ~91% stress reduction
+  } else if (params.heatTreatment === 'Annealed') {
+    residualStressMPa = Math.round(asBuiltResidualStress * 0.14); // ~86% stress reduction
+  } else if (params.heatTreatment === 'HIP') {
+    residualStressMPa = Math.round(asBuiltResidualStress * 0.04); // ~96% reduction under 1200 bar Ar
+  } else if (params.heatTreatment === 'Solution-Aged') {
+    residualStressMPa = Math.round(asBuiltResidualStress * 0.16);
+  }
+  residualStressMPa = Math.max(10, residualStressMPa);
+
+  // 14. High-Cycle Fatigue Endurance Limit (MPa @ 10^7 cycles)
+  // Governed by UTS, internal void fraction (pore notch sensitivity), and HIP pore healing
+  const baseEnduranceRatio = isCP ? 0.48 : 0.55;
+  const poreEnduranceKnockdown = Math.pow(densityFraction, 3.5);
+  const hipBonus = params.heatTreatment === 'HIP' ? 70 : 0;
+  const fatigueEnduranceMPa = Math.round(estimatedUTSMPa * baseEnduranceRatio * poreEnduranceKnockdown + hipBonus);
+
   return {
     volumetricEnergyDensity: Math.round(ved * 10) / 10,
     regime,
@@ -1595,6 +1669,11 @@ export function calculateAmPredictions(
     svmHardnessHV: svmHV,
     rockwellHRC,
     estimatedUTSMPa,
+    yieldStrengthMPa,
+    elongationPct,
+    residualStressMPa,
+    fatigueEnduranceMPa,
+    normalizedEnthalpy: Math.round(normalizedEnthalpy * 100) / 100,
     modelsTable,
     microstructurePhases,
     solidificationMorphology,
