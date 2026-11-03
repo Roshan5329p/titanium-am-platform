@@ -1,0 +1,25 @@
+# Secrets & Environment variables
+.env
+.env.*
+.env.local
+.env.production.local
+!.env.example
+
+# Local Database & Raw Data
+*.db
+*.db-journal
+materials_database_1.db
+variant_properties_wide.csv
+sources.txt
+
+# Java Backend (Runs locally, not needed on Vercel static hosting)
+src/
+bin/
+run*.bat
+run*.ps1
+
+# Editor & Logs
+*.log
+.DS_Store
+Thumbs.db
+.github

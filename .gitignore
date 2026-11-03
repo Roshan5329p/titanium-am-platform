@@ -1,0 +1,21 @@
+# Node & Build artifacts
+node_modules/
+dist/
+build/
+bin/
+
+# Vercel
+.vercel
+
+# Logs & Environment
+*.log
+.env*
+!.env.example
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.github\instructions\codacy.instructions.md
+
+.vercel
+.env*
