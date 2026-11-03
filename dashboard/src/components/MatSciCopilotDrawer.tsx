@@ -12,11 +12,32 @@ import {
   ExternalLink,
   CheckCircle2
 } from 'lucide-react';
+import { MATERIALS_CATALOG } from '../data/materialsData';
+
+export type CopilotRouteId =
+  | 'predictions'
+  | 'process-map'
+  | 'defects'
+  | 'economics'
+  | 'digital-twin'
+  | 'qualification'
+  | 'literature'
+  | 'workbench'
+  | 'datasets'
+  | 'telemetry'
+  | 'heat-treatment'
+  | 'phase-kinetics';
+
+export interface CopilotNavigationTarget {
+  id: CopilotRouteId;
+  label: string;
+}
 
 interface CopilotMessage {
   id: string;
   sender: 'ai' | 'user';
   text: string;
+  navigationTarget?: CopilotNavigationTarget;
   recommendedParams?: {
     laserPowerW?: number;
     scanSpeedMmS?: number;
@@ -40,6 +61,184 @@ export interface MatSciCopilotDrawerProps {
   }) => void;
   onScrollToSliders?: () => void;
   onScrollToWorkbench?: () => void;
+  onNavigateToSection: (target: CopilotNavigationTarget) => void;
+}
+
+const NAVIGATION_INTENTS: Array<{
+  id: CopilotRouteId;
+  label: string;
+  keywords: string[];
+}> = [
+  {
+    id: 'qualification',
+    label: 'ASTM Qualification Audit',
+    keywords: ['astm f3001', 'astm f2924', 'f3001', 'astm', 'qualification', 'qualify', 'certification', 'compliance audit', 'medical implant']
+  },
+  {
+    id: 'literature',
+    label: 'Literature Evidence & Research Gaps',
+    keywords: ['literature', 'research gap', 'research paper', 'publication', 'peer reviewed', 'evidence matrix', 'evidence', 'citations', 'benchmark papers']
+  },
+  {
+    id: 'economics',
+    label: 'Build Economics & ESG',
+    keywords: ['economics', 'cost', 'cost per part', 'roi', 'return on investment', 'esg', 'carbon', 'sustainability', 'buy to fly']
+  },
+  {
+    id: 'digital-twin',
+    label: '3D Digital Twin & Stress Tensor',
+    keywords: ['digital twin', '3d twin', '3d model', 'stress tensor', 'stress field', 'tensor', '3d visualization']
+  },
+  {
+    id: 'defects',
+    label: 'Defect Process Window',
+    keywords: ['defect', 'keyhole', 'keyholing', 'lack of fusion', 'porosity', 'pore', 'crack', 'cracking', 'balling', 'spatter', 'defect map', 'process window']
+  },
+  {
+    id: 'heat-treatment',
+    label: 'Route Architecture & Heat Treatment',
+    keywords: ['heat treatment', 'heat treat', 'treatment', 'hip', 'hot isostatic pressing', 'anneal', 'annealing', 'solution treatment', 'aging', 'post processing', 'route architecture', 'heat treatment recipe']
+  },
+  {
+    id: 'phase-kinetics',
+    label: 'Phase Kinetics & CCT',
+    keywords: ['phase kinetics', 'phase', 'cct', 'continuous cooling', 'martensite', 'alpha beta', 'alpha prime', 'beta transus', 'phase transformation', 'microstructure']
+  },
+  {
+    id: 'telemetry',
+    label: 'Thermal Telemetry',
+    keywords: ['thermal telemetry', 'thermal', 'cooling rate', 'rosenthal', 'thermal history', 'thermal profile', 'melt pool temperature', 'cooling curve']
+  },
+  {
+    id: 'datasets',
+    label: 'Supplementary Datasets',
+    keywords: ['supplementary dataset', 'dataset', 'database', 'record', 'variants', 'data table', 'csv', 'export data', 'process variants', 'experimental data', 'empirical data']
+  },
+  {
+    id: 'workbench',
+    label: 'Materials Synthesis Workbench',
+    keywords: ['workbench', 'compare alloy', 'compare material', 'compare alloys', 'alloy properties', 'material properties', 'material catalog', 'alloy', 'alloys', 'material', 'materials', 'tensile strength', 'elongation', 'hardness', 'properties', 'grade 5', 'grade 23']
+  },
+  {
+    id: 'process-map',
+    label: 'Process Map',
+    keywords: ['process map', 'lpbf', 'l pbf', 'slm', 'dmls', 'waam', 'wire arc', 'ded', 'directed energy deposition', 'ebm', 'electron beam', 'binder jetting', 'additive process', 'process comparison']
+  },
+  {
+    id: 'predictions',
+    label: 'Physics Predictor',
+    keywords: ['physics predictor', 'predictor', 'prediction', 'predict hardness', 'hardness prediction', 'predict microstructure', 'microstructure predictor', 'laser power', 'scan speed', 'hatch spacing', 'layer thickness', 'volumetric energy density', 'ved', 'parameter optimization', 'process parameters']
+  }
+];
+
+const CATALOG_STOP_WORDS = new Set([
+  'about', 'after', 'also', 'and', 'are', 'can', 'compare', 'data', 'does', 'for',
+  'from', 'have', 'help', 'how', 'into', 'make', 'material', 'materials', 'need',
+  'please', 'process', 'properties', 'property', 'recommend', 'show', 'tell', 'that',
+  'the', 'their', 'this', 'what', 'which', 'with', 'would'
+]);
+const SINGLE_TERM_CATALOG_SEARCH = new Set(['waam', 'lpbf', 'slm', 'dmls', 'ebm', 'hip', 'lens', 'tial']);
+const CATALOG_SEARCH_SYNONYMS = new Map<string, string[]>([
+  ['waam', ['wire', 'arc', 'additive', 'manufacturing']],
+  ['lpbf', ['laser', 'powder', 'bed', 'fusion']],
+  ['slm', ['selective', 'laser', 'melting']],
+  ['dmls', ['direct', 'metal', 'laser', 'sintering']],
+  ['ebm', ['electron', 'beam', 'melting']],
+  ['hip', ['hot', 'isostatic', 'pressing']],
+  ['lens', ['laser', 'engineered', 'net', 'shaping']]
+]);
+
+function normalizeSearchText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+}
+
+function findNavigationTarget(query: string): CopilotNavigationTarget | undefined {
+  const normalizedQuery = ` ${normalizeSearchText(query)} `;
+  let bestMatch: CopilotNavigationTarget | undefined;
+  let bestScore = 0;
+  let bestSpecificity = 0;
+
+  for (const intent of NAVIGATION_INTENTS) {
+    const matches = intent.keywords.filter((keyword) =>
+      normalizedQuery.includes(` ${normalizeSearchText(keyword)} `)
+    );
+    const score = matches.reduce((total, keyword) => total + normalizeSearchText(keyword).split(' ').length, 0);
+    const specificity = matches.reduce((total, keyword) => total + keyword.length, 0);
+
+    if (score > bestScore || (score === bestScore && specificity > bestSpecificity)) {
+      bestMatch = { id: intent.id, label: intent.label };
+      bestScore = score;
+      bestSpecificity = specificity;
+    }
+  }
+
+  return bestMatch;
+}
+
+function findCatalogEvidence(query: string): string[] {
+  const inputTerms = normalizeSearchText(query).split(' ');
+  const queryTerms = [...new Set([
+    ...inputTerms,
+    ...inputTerms.flatMap((term) => CATALOG_SEARCH_SYNONYMS.get(term) ?? [])
+  ])].filter((term) => (term.length >= 3 || /\d/.test(term)) && !CATALOG_STOP_WORDS.has(term));
+
+  if (queryTerms.length === 0) return [];
+
+  const singleTermSearch = queryTerms.length === 1 && SINGLE_TERM_CATALOG_SEARCH.has(queryTerms[0]);
+  const matches = MATERIALS_CATALOG.flatMap((material) =>
+    material.processRoutes.map((route) => {
+      const searchableText = normalizeSearchText([
+        material.name,
+        material.formula,
+        material.standardCode,
+        material.overview,
+        material.applications.join(' '),
+        JSON.stringify(material.mechanical),
+        JSON.stringify(material.thermal),
+        JSON.stringify(material.amQuality),
+        JSON.stringify(material.chemicalAndPhysical),
+        route.name,
+        route.shortName,
+        route.temperOrGrade,
+        route.processCategory,
+        route.subprocess,
+        route.postProcessingCondition,
+        route.summary,
+        JSON.stringify(route.propertyOverrides ?? {})
+      ].join(' '));
+      const searchableTerms = new Set(searchableText.split(' '));
+      const matchedTerms = queryTerms.filter((term) => searchableTerms.has(term));
+
+      return { material, route, score: matchedTerms.length };
+    })
+  )
+    .filter((match) => match.score >= 2 || (singleTermSearch && match.score === 1))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 2);
+
+  return matches.map(({ material, route }) => {
+    const properties = route.propertyOverrides;
+    const metrics = [
+      properties?.tensileStrengthMPa && `UTS ${properties.tensileStrengthMPa}`,
+      properties?.yieldStrengthMPa && `yield ${properties.yieldStrengthMPa}`,
+      properties?.elongationPct && `elongation ${properties.elongationPct}`,
+      properties?.hardnessHV && `hardness ${properties.hardnessHV}`,
+      properties?.relativeDensityPct && `relative density ${properties.relativeDensityPct}`
+    ].filter((metric): metric is string => Boolean(metric));
+    const summary = route.summary.trim();
+    const detail = summary ? ` ${summary.slice(0, 220)}${summary.length > 220 ? '…' : ''}` : '';
+    const materialMetrics = [
+      `UTS ${material.mechanical.tensileStrengthMPa}`,
+      `yield ${material.mechanical.yieldStrengthMPa}`,
+      `elongation ${material.mechanical.elongationPct}`,
+      `hardness ${material.mechanical.hardnessHV}`
+    ].join('; ');
+    const metricText = metrics.length > 0
+      ? ` Route-specific recorded metrics: ${metrics.join('; ')}.`
+      : ` Material catalog metrics: ${materialMetrics}.`;
+
+    return `• ${material.name} — ${route.name} (${route.processCategory}).${detail}${metricText}`;
+  });
 }
 
 const PRESET_QUERIES = [
@@ -266,12 +465,13 @@ export const MatSciCopilotDrawer: React.FC<MatSciCopilotDrawerProps> = ({
   onApplyParameters,
   onScrollToSliders,
   onScrollToWorkbench,
+  onNavigateToSection,
 }) => {
   const [messages, setMessages] = useState<CopilotMessage[]>([
     {
       id: 'welcome',
       sender: 'ai',
-      text: `Hello! I am your **MatSci AM Metallurgy Copilot**, calibrated with analytical Rosenthal 3D equations, Ashby-Easterling phase kinetics, and empirical AM titanium datasets. I can optimize your processing window, troubleshoot porosity defects, or tailor heat treatments for aerospace/medical certification.\n\nHow can I assist your titanium additive manufacturing build today?`,
+      text: `Hello! I am your **MatSci AM Metallurgy Copilot**. I can help with titanium additive manufacturing, search the site's material and process-variant catalog, and point you to the relevant predictor, defect, qualification, economics, literature, and process sections.\n\nHow can I assist your titanium additive manufacturing build today?`,
       timestamp: 'Just now',
     },
   ]);
@@ -306,8 +506,13 @@ export const MatSciCopilotDrawer: React.FC<MatSciCopilotDrawerProps> = ({
       let recommendedParams: CopilotMessage['recommendedParams'] | undefined = undefined;
 
       const lower = queryText.toLowerCase();
+      const navigationTarget = findNavigationTarget(queryText);
+      const catalogEvidence = findCatalogEvidence(queryText);
+      const isNavigationRequest = /\b(where|open|find|show me|take me|navigate|go to)\b/.test(lower);
 
-      if (lower.includes('keyhole') || lower.includes('keyholing')) {
+      if (navigationTarget && isNavigationRequest) {
+        aiResponseText = `I matched your question to **${navigationTarget.label}** in the website. Use the button below to open that section.`;
+      } else if (lower.includes('keyhole') || lower.includes('keyholing')) {
         aiResponseText = `**Keyholing Porosity Remediation:**\n\nKeyhole pore formation occurs when King's **Normalized Enthalpy (H = ΔH/hs)** exceeds **26.0** (safe conduction window: 8.0 – 26.0) and the melt pool depth-to-width aspect ratio **(d/w) exceeds 0.80**. The intense recoil pressure of vaporizing titanium pushes molten metal aside, creating an unstable vapor depression that collapses and traps argon gas voids.\n\n**Action Plan:**\n1. **Increase Scan Speed:** Boost scan speed v from 950 mm/s to **1,250 mm/s** to shorten local laser dwell time.\n2. **Moderate Laser Power:** Adjust power P to **220 W**.\n3. **Resulting Energy Density:** Maintains VED at **≈ 68 J/mm³** (fully dense conduction mode, relative density > 99.85%).`;
         recommendedParams = {
           laserPowerW: 220,
@@ -332,17 +537,20 @@ export const MatSciCopilotDrawer: React.FC<MatSciCopilotDrawerProps> = ({
       } else if (lower.includes('waam') || lower.includes('large') || lower.includes('rib')) {
         aiResponseText = `**LPBF vs. WAAM Technology Comparison for Structural Ribs:**\n\n• **Laser PBF:** Ideal for complex thin-walled internal lattices (<0.8 mm) with fine surface finish (Ra ≈ 8–15 μm). Deposition rate is **15–35 cm³/hr**, making multi-meter bulk aerospace ribs cost-prohibitive.\n• **Wire Arc AM (WAAM):** Delivers high deposition rates of **1,500–4,000 cm³/hr** (up to 3–6 kg/hr) at significantly lower feed cost ($65/kg wire vs $220/kg powder). Requires post-build CNC machining.\n\n**Recommendation:**\nUse WAAM for large near-net-shape aerospace spars, followed by sub-transus annealing to relieve residual shrinkage stresses.`;
       } else {
-        aiResponseText = `**Metallurgical Recommendations for ${activeAlloyName}:**\n\nBased on analytical Rosenthal 3D and Gaussian Process models, maintaining Volumetric Energy Density between **60 and 85 J/mm³** ensures a stable conduction melt pool and eliminates lack-of-fusion voids.\n\n**Suggested Strategy:**\n1. **Laser Power & Speed:** Set laser power to **220 W** and scan speed to **1,050 mm/s**.\n2. **Stress Relief:** Follow with sub-transus stress relief annealing (730°C / 2h in industrial vacuum) to relieve 92% of residual thermal stresses while preserving high tensile yield (>880 MPa).`;
-        recommendedParams = {
-          laserPowerW: 220,
-          scanSpeedMmS: 1050,
-        };
+        aiResponseText = navigationTarget
+          ? `I matched your question to **${navigationTarget.label}** in the website. Use the button below to open that section.`
+          : `I couldn't match that question to a specific website section or a ready-made answer for ${activeAlloyName}. Try naming an alloy, process, defect, property, heat treatment, or one of the site sections.`;
+      }
+
+      if (catalogEvidence.length > 0) {
+        aiResponseText += `\n\n**Matching Website Catalog Records:**\n${catalogEvidence.join('\n')}\n\nThese matches are retrieved from the site's material and process-variant catalog; check the cited record and applicable standard before using values for qualification or production.`;
       }
 
       const aiMsg: CopilotMessage = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
         text: aiResponseText,
+        navigationTarget,
         recommendedParams,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
@@ -388,6 +596,11 @@ export const MatSciCopilotDrawer: React.FC<MatSciCopilotDrawerProps> = ({
       setAppliedParamId(null);
       setAppliedTarget(null);
     }, 5000);
+  };
+
+  const handleNavigateToSection = (target: CopilotNavigationTarget) => {
+    onNavigateToSection(target);
+    if (window.innerWidth < 1024) onClose();
   };
 
   if (!isOpen) return null;
@@ -532,6 +745,18 @@ export const MatSciCopilotDrawer: React.FC<MatSciCopilotDrawerProps> = ({
                     </button>
                   </div>
                 </div>
+              )}
+
+              {msg.navigationTarget && (
+                <button
+                  type="button"
+                  onClick={() => handleNavigateToSection(msg.navigationTarget!)}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#111c2a] hover:bg-[#18293d] text-[#8db1d8] hover:text-white border border-[#223953] text-xs font-medium transition-colors"
+                >
+                  <Compass className="w-3.5 h-3.5 text-[#50d8e9]" />
+                  <span>Open {msg.navigationTarget.label}</span>
+                  <ExternalLink className="w-3 h-3 text-[#6c88a8]" />
+                </button>
               )}
 
               <div className="text-[9.5px] text-[#556e87] text-right">{msg.timestamp}</div>

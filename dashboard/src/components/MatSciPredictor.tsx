@@ -67,7 +67,7 @@ import { DefectProcessWindowView } from './DefectProcessWindowView';
 import { IndustrialEconomicsView } from './IndustrialEconomicsView';
 import { QualificationAuditView } from './QualificationAuditView';
 import { DigitalTwin3DView } from './DigitalTwin3DView';
-import { MatSciCopilotDrawer } from './MatSciCopilotDrawer';
+import { MatSciCopilotDrawer, type CopilotNavigationTarget } from './MatSciCopilotDrawer';
 
 export type ActiveTab =
   | 'predictions'
@@ -87,6 +87,7 @@ export interface MatSciPredictorProps {
   onAlloyChange?: (alloyId: string) => void;
   activeTab?: ActiveTab;
   onTabChange?: (tab: ActiveTab) => void;
+  onCopilotNavigate: (target: CopilotNavigationTarget) => void;
 }
 
 // The 8 authorized ISO/ASTM Additive Manufacturing processes
@@ -296,6 +297,7 @@ export function MatSciPredictor({
   onAlloyChange,
   activeTab: activeTabProp,
   onTabChange,
+  onCopilotNavigate,
 }: MatSciPredictorProps) {
   // Sidebar Controls State
   const [selectedProcessId, setSelectedProcessId] = useState('pbf-laser');
@@ -5526,6 +5528,7 @@ export function MatSciPredictor({
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         }}
+        onNavigateToSection={onCopilotNavigate}
       />
     </section>
   );

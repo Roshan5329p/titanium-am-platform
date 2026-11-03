@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Atom,
   Menu,
@@ -25,7 +25,23 @@ import { MatSciWorkbench } from './components/MatSciWorkbench';
 import { MatSciCommandSections } from './components/MatSciCommandSections';
 import { MaterialCompareModal } from './components/MaterialCompareModal';
 import { ActiveTab, MatSciPredictor } from './components/MatSciPredictor';
+import type { CopilotNavigationTarget, CopilotRouteId } from './components/MatSciCopilotDrawer';
 import { SupplementaryDatasetsSection } from './components/SupplementaryDatasetsSection';
+
+const COPILOT_SECTION_TARGETS: Record<CopilotRouteId, { sectionId: string; tab?: ActiveTab }> = {
+  predictions: { sectionId: 'physics-predictor', tab: 'predictions' },
+  'process-map': { sectionId: 'physics-predictor', tab: 'process-map' },
+  defects: { sectionId: 'physics-predictor', tab: 'defect-map' },
+  economics: { sectionId: 'physics-predictor', tab: 'economics' },
+  'digital-twin': { sectionId: 'physics-predictor', tab: 'digital-twin' },
+  qualification: { sectionId: 'physics-predictor', tab: 'qualification' },
+  literature: { sectionId: 'physics-predictor', tab: 'literature-intel' },
+  workbench: { sectionId: 'workbench-anchor' },
+  datasets: { sectionId: 'supplementary-datasets' },
+  telemetry: { sectionId: 'telemetry-section' },
+  'heat-treatment': { sectionId: 'architecture-section' },
+  'phase-kinetics': { sectionId: 'insights-section' }
+};
 
 export default function App() {
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
@@ -70,6 +86,14 @@ export default function App() {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  const handleCopilotNavigate = useCallback((target: CopilotNavigationTarget) => {
+    const destination = COPILOT_SECTION_TARGETS[target.id];
+    if (destination.tab) setActivePredictorTab(destination.tab);
+    window.requestAnimationFrame(() => {
+      document.getElementById(destination.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#070708] text-[#e5e2e3] antialiased selection:bg-[#5E6BFF] selection:text-white">
@@ -437,6 +461,7 @@ export default function App() {
           onAlloyChange={(newId) => setSelectedMaterialId(newId)}
           activeTab={activePredictorTab}
           onTabChange={setActivePredictorTab}
+          onCopilotNavigate={handleCopilotNavigate}
         />
 
         <MatSciWorkbench
