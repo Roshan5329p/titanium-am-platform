@@ -9,6 +9,7 @@ import { MatSciWorkbench } from './components/MatSciWorkbench';
 import { MatSciCommandSections } from './components/MatSciCommandSections';
 import { MaterialCompareModal } from './components/MaterialCompareModal';
 import { ActiveTab, MatSciPredictor } from './components/MatSciPredictor';
+import { SupplementaryDatasetsSection } from './components/SupplementaryDatasetsSection';
 
 export default function App() {
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
@@ -81,6 +82,13 @@ export default function App() {
             >
               <span>Evidence &amp; Gaps</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#50d8e9]/20 text-[#50d8e9] font-mono">6 Insights</span>
+            </button>
+            <button
+              onClick={() => handleScrollToSection('supplementary-datasets')}
+              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
+            >
+              <span>Supplementary Datasets</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#50d8e9]/20 text-[#50d8e9] font-mono">275 Records</span>
             </button>
             <button
               onClick={() => handleScrollToSection('workbench-anchor')}
@@ -158,6 +166,16 @@ export default function App() {
             </button>
             <button
               onClick={() => {
+                handleScrollToSection('supplementary-datasets');
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 px-3 rounded-lg text-sm text-[#50d8e9] hover:bg-[#50d8e9]/10 font-medium transition-colors flex items-center justify-between"
+            >
+              <span>Supplementary Datasets</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#50d8e9]/20 text-[#50d8e9] font-mono">275 Records</span>
+            </button>
+            <button
+              onClick={() => {
                 handleScrollToSection('workbench-anchor');
                 setIsMobileMenuOpen(false);
               }}
@@ -213,6 +231,16 @@ export default function App() {
           onToggleCompare={handleToggleCompare}
           onOpenCompareModal={() => setIsCompareModalOpen(true)}
           onNavigateArchitecture={() => handleScrollToSection('architecture-section')}
+        />
+
+        {/* Dedicated Supplementary Datasets & Empirical Telemetry Repository Section */}
+        <SupplementaryDatasetsSection
+          onSelectMaterialInWorkbench={handleSelectMaterialAndScroll}
+          onApplyParametersToPredictor={(alloyId) => {
+            setSelectedMaterialId(alloyId);
+            setActivePredictorTab('predictions');
+            handleScrollToSection('physics-predictor');
+          }}
         />
 
         <MatSciCommandSections
