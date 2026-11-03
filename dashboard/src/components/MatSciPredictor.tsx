@@ -82,6 +82,20 @@ export type ActiveTab =
   | 'literature-intel'
   | 'references';
 
+const PREDICTOR_TAB_ORDER: readonly ActiveTab[] = [
+  'predictions',
+  'process-map',
+  'defect-map',
+  'economics',
+  'digital-twin',
+  'qualification',
+  'suggestions',
+  'melt-pool',
+  'accuracy',
+  'literature-intel',
+  'references'
+];
+
 export interface MatSciPredictorProps {
   initialAlloyId?: string;
   onAlloyChange?: (alloyId: string) => void;
@@ -327,6 +341,55 @@ export function MatSciPredictor({
     setInternalActiveTab(tab);
     onTabChange?.(tab);
   };
+  const tabNavigationRef = useRef<HTMLDivElement | null>(null);
+  const wheelGestureHandledRef = useRef(false);
+  const wheelGestureResetTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const tabNavigation = tabNavigationRef.current;
+    if (!tabNavigation) return;
+
+    const handleSubsectionWheel = (event: WheelEvent) => {
+      if (!window.matchMedia('(min-width: 1024px)').matches) return;
+
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+        ? event.deltaX
+        : event.deltaY;
+      if (delta === 0) return;
+
+      const currentIndex = PREDICTOR_TAB_ORDER.indexOf(activeTab);
+      const nextIndex = currentIndex + (delta > 0 ? 1 : -1);
+      if (nextIndex < 0 || nextIndex >= PREDICTOR_TAB_ORDER.length) return;
+
+      event.preventDefault();
+      if (!wheelGestureHandledRef.current) {
+        wheelGestureHandledRef.current = true;
+        setActiveTab(PREDICTOR_TAB_ORDER[nextIndex]);
+        tabNavigation.children.item(nextIndex)?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest'
+        });
+      }
+
+      if (wheelGestureResetTimerRef.current !== null) {
+        window.clearTimeout(wheelGestureResetTimerRef.current);
+      }
+      wheelGestureResetTimerRef.current = window.setTimeout(() => {
+        wheelGestureHandledRef.current = false;
+        wheelGestureResetTimerRef.current = null;
+      }, 250);
+    };
+
+    tabNavigation.addEventListener('wheel', handleSubsectionWheel, { passive: false });
+    return () => tabNavigation.removeEventListener('wheel', handleSubsectionWheel);
+  }, [activeTab, onTabChange]);
+
+  useEffect(() => () => {
+    if (wheelGestureResetTimerRef.current !== null) {
+      window.clearTimeout(wheelGestureResetTimerRef.current);
+    }
+  }, []);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [copilotBanner, setCopilotBanner] = useState<string | null>(null);
   const [highlightedSlider, setHighlightedSlider] = useState<'all' | 'laserPower' | 'scanSpeed' | 'hatchSpacing' | 'layerThickness' | 'preheatTemp' | null>(null);
@@ -1439,7 +1502,11 @@ export function MatSciPredictor({
           <main className="lg:col-span-9 min-w-0 max-w-full space-y-5">
 
             {/* TAB NAVIGATION HEADER matching screenshots */}
-            <div className="border-b border-[#1c2430] w-full max-w-full flex flex-nowrap overflow-x-auto gap-2 text-xs sm:text-sm font-medium pb-1 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <div
+              ref={tabNavigationRef}
+              aria-label="Physics Predictor subsections. Scroll here with a mouse wheel or trackpad to switch sections."
+              className="border-b border-[#1c2430] w-full max-w-full flex flex-nowrap overflow-x-auto gap-2 text-xs sm:text-sm font-medium pb-1 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            >
               <button
                 onClick={() => setActiveTab('predictions')}
                 className={`px-4 py-2.5 rounded-t-lg transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
@@ -1597,6 +1664,9 @@ export function MatSciPredictor({
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
               </button>
             </div>
+            <p className="hidden lg:block text-right text-[10px] text-[#61758d] -mt-4">
+              Scroll over the tabs with your mouse or trackpad to switch subsections
+            </p>
 
             {/* TAB 1: PREDICTIONS */}
             {activeTab === 'predictions' && (
