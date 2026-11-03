@@ -395,7 +395,7 @@ export function MatSciWorkbench({
         {/* RIGHT PANE: Material Explorer / Creation Parameters & Property Profiles (8 cols on lg) */}
         <div className="lg:col-span-8">
           {!selectedMaterial ? (
-            /* EMPTY / DEFAULT EXPLORER PROMPT STATE (Matches image_f48a1e5a.png + Cinematic Precision schematics) */
+            /* EMPTY / DEFAULT EXPLORER STATE (Matches image_f48a1e5a.png + Cinematic Precision schematics) */
             <div className="space-y-6">
               <div className="bg-[#101112] border border-[#232426] rounded-xl p-8 sm:p-14 min-h-[360px] flex flex-col items-center justify-center text-center relative overflow-hidden inner-glow shadow-2xl">
                 {/* Subtle Cinematic Precision Grid & Corner Brackets */}
@@ -537,7 +537,7 @@ export function MatSciWorkbench({
                     className="text-xs font-mono-data text-[#9A9DA3] hover:text-white flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#232426] bg-[#101112] hover:border-[#454655] transition-colors"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>Explorer Prompt</span>
+                    <span>Material Explorer</span>
                   </button>
 
                   <div className="flex flex-wrap items-center gap-2">

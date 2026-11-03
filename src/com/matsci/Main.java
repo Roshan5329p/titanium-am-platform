@@ -28,7 +28,8 @@ public class Main {
             if (!dataFile.exists()) {
                 dataFile = new File(baseDir, "data" + File.separator + "variant_properties_wide.csv");
             }
-            File webDir = new File(baseDir, "web");
+            File distDir = new File(baseDir, "dashboard" + File.separator + "dist");
+            File webDir = distDir.exists() && distDir.isDirectory() ? distDir : new File(baseDir, "web");
 
             if (!dataFile.exists()) {
                 System.err.println("Database file not found in data directory: " + dataFile.getAbsolutePath());

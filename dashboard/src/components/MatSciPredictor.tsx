@@ -2228,11 +2228,11 @@ export function MatSciPredictor({
                     <span className={`text-xs font-bold mt-1 px-1.5 py-0.5 rounded inline-block w-fit ${
                       prediction.regime === 'conduction'
                         ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40'
-                        : prediction.regime === 'keyholing'
+                        : prediction.regime === 'keyhole'
                         ? 'bg-red-950/80 text-red-400 border border-red-500/40'
                         : 'bg-amber-950/80 text-amber-400 border border-amber-500/40'
                     }`}>
-                      {prediction.regime === 'conduction' ? '✓ Conduction' : prediction.regime === 'keyholing' ? '⚠ Keyholing' : '⚠ Lack of Fusion'}
+                      {prediction.regime === 'conduction' ? '✓ Conduction' : prediction.regime === 'keyhole' ? '⚠ Keyholing' : prediction.regime === 'balling' ? '⚠ Balling' : '⚠ Lack of Fusion'}
                     </span>
                   </div>
 
@@ -2244,13 +2244,13 @@ export function MatSciPredictor({
 
                   <div className="bg-[#0a0f18] border border-[#1b2738] rounded-lg p-2.5">
                     <div className="text-[10px] text-[#7189a3] font-semibold">Vickers Hardness</div>
-                    <div className="text-sm font-bold text-emerald-400 mt-0.5">{prediction.predictedHardnessHV} HV</div>
+                    <div className="text-sm font-bold text-emerald-400 mt-0.5">{prediction.hybridHardnessHV} HV</div>
                     <div className="text-[10px] text-[#7189a3]">Hybrid GPR</div>
                   </div>
 
                   <div className="bg-[#0a0f18] border border-[#1b2738] rounded-lg p-2.5">
                     <div className="text-[10px] text-[#7189a3] font-semibold">Relative Density</div>
-                    <div className="text-sm font-bold text-[#50d8e9] mt-0.5">{(prediction.predictedRelativeDensity * 100).toFixed(1)}%</div>
+                    <div className="text-sm font-bold text-[#50d8e9] mt-0.5">{prediction.relativeDensityPct.toFixed(1)}%</div>
                     <div className="text-[10px] text-[#7189a3]">Pistorius Criteria</div>
                   </div>
                 </div>
@@ -4375,7 +4375,7 @@ export function MatSciPredictor({
                           <div className="bg-[#0a0f18] border border-[#1b2738] rounded-lg p-2.5">
                             <div className="text-[10px] text-[#7189a3] font-semibold">Cooling Rate (G × R)</div>
                             <div className="text-sm font-bold text-white mt-0.5">
-                              {bonthaData.coolingRate_Ks ? `${(bonthaData.coolingRate_Ks).toExponential(2)} K/s` : 'N/A'}
+                              {bonthaData.surfaceCoolingRateKs ? `${(bonthaData.surfaceCoolingRateKs).toExponential(2)} K/s` : 'N/A'}
                             </div>
                             <div className="text-[10px] text-[#50d8e9]">Melt Pool Average</div>
                           </div>

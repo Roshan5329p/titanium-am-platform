@@ -6,6 +6,13 @@ if (!(Test-Path "bin")) {
     New-Item -ItemType Directory -Path "bin" | Out-Null
 }
 
+if (!(Test-Path "dashboard\dist")) {
+    Write-Host "[INFO] Building dashboard frontend with Vite..." -ForegroundColor Cyan
+    Push-Location "dashboard"
+    npm.cmd run build
+    Pop-Location
+}
+
 Write-Host "[1/2] Compiling Java source files..." -ForegroundColor Yellow
 javac -d bin -encoding UTF-8 -sourcepath src src/com/matsci/Main.java
 

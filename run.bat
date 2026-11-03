@@ -6,6 +6,11 @@ echo ==================================================================
 
 if not exist bin mkdir bin
 
+if not exist dashboard\dist (
+    echo [INFO] Building dashboard frontend with Vite...
+    cd dashboard && call npm.cmd run build && cd ..
+)
+
 echo [1/2] Compiling Java source files...
 javac -d bin -encoding UTF-8 -sourcepath src src/com/matsci/Main.java
 

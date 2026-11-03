@@ -1,8 +1,13 @@
 # Node & Build artifacts
 node_modules/
 dist/
+dashboard/dist/
 build/
 bin/
+web/assets/
+web/
+*.min.js
+*.min.css
 
 # Vercel
 .vercel
@@ -15,7 +20,3 @@ bin/
 # OS / Editor
 .DS_Store
 Thumbs.db
-.github\instructions\codacy.instructions.md
-
-.vercel
-.env*
