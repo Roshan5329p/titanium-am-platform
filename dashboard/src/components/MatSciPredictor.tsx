@@ -821,8 +821,8 @@ export function MatSciPredictor({
   };
 
   return (
-    <section id="physics-predictor" className="w-full bg-[#090b0e] border-y border-[#1f242d] text-[#e0e6ed] py-8 font-sans">
-      <div className="max-w-[1720px] mx-auto px-3 sm:px-6">
+    <section id="physics-predictor" className="w-full max-w-full overflow-x-hidden bg-[#090b0e] border-y border-[#1f242d] text-[#e0e6ed] py-8 font-sans">
+      <div className="max-w-[1720px] w-full mx-auto px-3 sm:px-6 min-w-0">
         
         {/* Top Header Card Banner matching screenshots */}
         <div className="relative mb-6 rounded-xl overflow-hidden border border-[#1f3042] bg-gradient-to-r from-[#11314f] via-[#0d2a45] to-[#0d3b4c] p-6 shadow-2xl">
@@ -876,10 +876,10 @@ export function MatSciPredictor({
         </div>
 
         {/* Workspace Layout: Left Sidebar Controls + Main Predictions Panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-w-0 w-full">
 
           {/* LEFT SIDEBAR: Process, Material, Sliders, Heat Treatment */}
-          <aside className="lg:col-span-3 space-y-5 bg-[#0f1217] border border-[#1c222c] rounded-xl p-5 text-sm h-fit shadow-xl">
+          <aside className="lg:col-span-3 min-w-0 space-y-5 bg-[#0f1217] border border-[#1c222c] rounded-xl p-5 text-sm h-fit shadow-xl">
             
             {/* 1. AM Process Selection (8 Authorized Processes) */}
             <div className="space-y-2 border-b border-[#1c222c] pb-4">
@@ -1400,10 +1400,10 @@ export function MatSciPredictor({
           </aside>
 
           {/* MAIN PREDICTIONS WORKSPACE (Tabs, KPIs, Visualizations) */}
-          <main className="lg:col-span-9 space-y-5">
+          <main className="lg:col-span-9 min-w-0 max-w-full space-y-5">
 
             {/* TAB NAVIGATION HEADER matching screenshots */}
-            <div className="border-b border-[#1c2430] flex flex-nowrap overflow-x-auto gap-2 text-xs sm:text-sm font-medium pb-1 scrollbar-none">
+            <div className="border-b border-[#1c2430] w-full max-w-full flex flex-nowrap overflow-x-auto gap-2 text-xs sm:text-sm font-medium pb-1 scrollbar-thin">
               <button
                 onClick={() => setActiveTab('predictions')}
                 className={`px-4 py-2.5 rounded-t-lg transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${

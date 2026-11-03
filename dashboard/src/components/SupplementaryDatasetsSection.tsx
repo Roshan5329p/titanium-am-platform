@@ -360,13 +360,13 @@ export const SupplementaryDatasetsSection: React.FC<SupplementaryDatasetsSection
   const processCategories = ['All', ...new Set(flatVariants.map((v) => v.category))];
 
   return (
-    <section id="supplementary-datasets" className="py-16 sm:py-20 border-t border-[#232426] bg-[#070708] relative">
+    <section id="supplementary-datasets" className="w-full max-w-full overflow-x-hidden py-16 sm:py-20 border-t border-[#232426] bg-[#070708] relative">
       {/* Background accents */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#50d8e9]/40 to-transparent" />
       <div className="absolute -top-32 right-12 w-96 h-96 bg-[#50d8e9]/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-32 left-12 w-96 h-96 bg-[#5E6BFF]/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="max-w-[1640px] mx-auto px-4 sm:px-8">
+      <div className="max-w-[1640px] w-full mx-auto px-4 sm:px-8 min-w-0">
         {/* Section Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10 pb-8 border-b border-[#232426]">
           <div>

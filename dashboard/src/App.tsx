@@ -3,8 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { Atom, Menu, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Atom,
+  Menu,
+  X,
+  ChevronDown,
+  Database,
+  Sliders,
+  Flame,
+  GitFork,
+  Activity,
+  FileCheck2,
+  BookOpen,
+  Box,
+  TrendingUp,
+  ShieldAlert,
+  DollarSign
+} from 'lucide-react';
 import { MatSciWorkbench } from './components/MatSciWorkbench';
 import { MatSciCommandSections } from './components/MatSciCommandSections';
 import { MaterialCompareModal } from './components/MaterialCompareModal';
@@ -17,6 +33,18 @@ export default function App() {
   const [compareIds, setCompareIds] = useState<string[]>(['ti-6al-4v', 'ti-6al-4v-eli']);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSectionsDropdownOpen, setIsSectionsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsSectionsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleToggleCompare = (id: string) => {
     setCompareIds((prev) =>
@@ -44,10 +72,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070708] text-[#e5e2e3] antialiased selection:bg-[#5E6BFF] selection:text-white">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#070708] text-[#e5e2e3] antialiased selection:bg-[#5E6BFF] selection:text-white">
       {/* Top 3-Zone Navigation Bar (Cinematic Precision) */}
-      <header className="sticky top-0 z-40 w-full h-16 bg-[#070708]/90 backdrop-blur-md border-b border-[#232426]">
-        <div className="max-w-[1640px] mx-auto h-full px-4 sm:px-8 flex items-center justify-between gap-8">
+      <header className="sticky top-0 z-40 w-full max-w-full h-16 bg-[#070708]/90 backdrop-blur-md border-b border-[#232426]">
+        <div className="max-w-[1640px] w-full mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 xl:gap-6 min-w-0">
           {/* Zone 1: Brand Wordmark */}
           <button
             onClick={() => {
@@ -57,103 +85,199 @@ export default function App() {
             className="flex items-center gap-2.5 text-left group shrink-0 whitespace-nowrap"
           >
             <Atom className="w-5 h-5 text-[#50d8e9] group-hover:rotate-45 transition-transform duration-300" />
-            <span className="font-h3 text-lg font-bold tracking-tight text-white">
+            <span className="font-h3 text-base sm:text-lg font-bold tracking-tight text-white">
               MatSci Navigator
             </span>
           </button>
 
-          {/* Zone 2: Primary Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 text-sm text-[#9A9DA3]">
+          {/* Zone 2: Primary Navigation Links (Optimized Responsive Desktop Bar) */}
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-2.5 text-xs xl:text-sm text-[#9A9DA3] min-w-0">
             <button
               onClick={() => {
                 setActivePredictorTab('predictions');
                 handleScrollToSection('physics-predictor');
               }}
-              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1"
+              className="px-2 xl:px-2.5 py-1.5 rounded-lg hover:text-[#50d8e9] hover:bg-white/5 transition-colors whitespace-nowrap shrink-0 font-medium"
             >
-              <span>Physics Predictor</span>
+              Physics Predictor
             </button>
+
             <button
               onClick={() => {
                 setActivePredictorTab('defect-map');
                 handleScrollToSection('physics-predictor');
               }}
-              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
+              className="px-2 xl:px-2.5 py-1.5 rounded-lg hover:text-[#50d8e9] hover:bg-white/5 transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
             >
               <span>Defect Window</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono">Enthalpy</span>
+              <span className="hidden 2xl:inline-block text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono">Enthalpy</span>
             </button>
+
             <button
               onClick={() => {
                 setActivePredictorTab('economics');
                 handleScrollToSection('physics-predictor');
               }}
-              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
+              className="px-2 xl:px-2.5 py-1.5 rounded-lg hover:text-[#50d8e9] hover:bg-white/5 transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
             >
-              <span>Build Economics</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">ROI</span>
+              <span>Economics</span>
+              <span className="hidden 2xl:inline-block text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">ROI</span>
             </button>
+
             <button
               onClick={() => {
                 setActivePredictorTab('digital-twin');
                 handleScrollToSection('physics-predictor');
               }}
-              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
+              className="px-2 xl:px-2.5 py-1.5 rounded-lg hover:text-[#50d8e9] hover:bg-white/5 transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
             >
-              <span>3D Digital Twin</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-[#50d8e9] font-mono">Tensor</span>
+              <span>3D Twin</span>
+              <span className="hidden 2xl:inline-block text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-[#50d8e9] font-mono">Tensor</span>
             </button>
+
             <button
               onClick={() => {
                 setActivePredictorTab('qualification');
                 handleScrollToSection('physics-predictor');
               }}
-              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
+              className="hidden xl:flex px-2 xl:px-2.5 py-1.5 rounded-lg hover:text-[#50d8e9] hover:bg-white/5 transition-colors whitespace-nowrap shrink-0 font-medium items-center gap-1.5"
             >
-              <span>ASTM Qualification</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono">Audit</span>
+              <span>ASTM Audit</span>
+              <span className="hidden 2xl:inline-block text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono">Audit</span>
             </button>
+
             <button
               onClick={() => {
                 setActivePredictorTab('literature-intel');
                 handleScrollToSection('physics-predictor');
               }}
-              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
+              className="hidden 2xl:flex px-2 xl:px-2.5 py-1.5 rounded-lg hover:text-[#50d8e9] hover:bg-white/5 transition-colors whitespace-nowrap shrink-0 font-medium items-center gap-1.5"
             >
               <span>Evidence &amp; Gaps</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#50d8e9]/20 text-[#50d8e9] font-mono">6 Insights</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#50d8e9]/20 text-[#50d8e9] font-mono">6</span>
             </button>
-            <button
-              onClick={() => handleScrollToSection('supplementary-datasets')}
-              className="hover:text-[#50d8e9] transition-colors whitespace-nowrap shrink-0 font-medium flex items-center gap-1.5"
-            >
-              <span>Supplementary Datasets</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#50d8e9]/20 text-[#50d8e9] font-mono">275 Records</span>
-            </button>
-            <button
-              onClick={() => handleScrollToSection('workbench-anchor')}
-              className="hover:text-white transition-colors whitespace-nowrap shrink-0"
-            >
-              Synthesis Explorer
-            </button>
-            <button
-              onClick={() => handleScrollToSection('telemetry-section')}
-              className="hover:text-white transition-colors whitespace-nowrap shrink-0"
-            >
-              Thermal Telemetry
-            </button>
-            <button
-              onClick={() => handleScrollToSection('architecture-section')}
-              className="hover:text-white transition-colors whitespace-nowrap shrink-0"
-            >
-              Route Architecture
-            </button>
-            <button
-              onClick={() => handleScrollToSection('insights-section')}
-              className="hover:text-white transition-colors whitespace-nowrap shrink-0"
-            >
-              Phase Kinetics
-            </button>
+
+            {/* Interactive "Explore Sections ▾" Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsSectionsDropdownOpen(!isSectionsDropdownOpen)}
+                className={`px-2.5 py-1.5 rounded-lg border transition-all text-xs xl:text-sm font-medium flex items-center gap-1.5 shrink-0 ${
+                  isSectionsDropdownOpen
+                    ? 'border-[#50d8e9]/50 text-[#50d8e9] bg-[#50d8e9]/10'
+                    : 'border-[#232426] text-[#c6c5d8] hover:text-white hover:bg-white/5 hover:border-[#3a3b40]'
+                }`}
+              >
+                <span>Explore Sections</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    isSectionsDropdownOpen ? 'rotate-180 text-[#50d8e9]' : 'text-[#8f8fa1]'
+                  }`}
+                />
+              </button>
+
+              {isSectionsDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-72 rounded-xl bg-[#0b0c0e]/98 border border-[#232426] p-1.5 shadow-2xl backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-[#686b73] border-b border-[#1b1c1e]">
+                    Platform Sections &amp; Data
+                  </div>
+
+                  <div className="py-1 space-y-0.5">
+                    <button
+                      onClick={() => {
+                        handleScrollToSection('supplementary-datasets');
+                        setIsSectionsDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-[#50d8e9]/10 hover:text-[#50d8e9] text-[#c6c5d8] transition-colors flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Database className="w-3.5 h-3.5 text-[#50d8e9]" />
+                        <span className="font-medium">Supplementary Datasets</span>
+                      </div>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#50d8e9]/15 text-[#50d8e9]">275</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleScrollToSection('workbench-anchor');
+                        setIsSectionsDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5 hover:text-white text-[#c6c5d8] transition-colors flex items-center gap-2"
+                    >
+                      <Sliders className="w-3.5 h-3.5 text-[#5E6BFF]" />
+                      <span className="font-medium">Synthesis Explorer (20 Alloys)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleScrollToSection('telemetry-section');
+                        setIsSectionsDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5 hover:text-white text-[#c6c5d8] transition-colors flex items-center gap-2"
+                    >
+                      <Flame className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="font-medium">Thermal Telemetry &amp; Cooling</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleScrollToSection('architecture-section');
+                        setIsSectionsDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5 hover:text-white text-[#c6c5d8] transition-colors flex items-center gap-2"
+                    >
+                      <GitFork className="w-3.5 h-3.5 text-cyan-400" />
+                      <span className="font-medium">Route Architecture &amp; HIP</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleScrollToSection('insights-section');
+                        setIsSectionsDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5 hover:text-white text-[#c6c5d8] transition-colors flex items-center gap-2"
+                    >
+                      <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="font-medium">Phase Kinetics &amp; CCT</span>
+                    </button>
+
+                    {/* Responsive fallback for ASTM Audit and Evidence & Gaps when hidden on smaller desktop widths */}
+                    <div className="border-t border-[#1b1c1e] my-1 pt-1 xl:hidden">
+                      <button
+                        onClick={() => {
+                          setActivePredictorTab('qualification');
+                          handleScrollToSection('physics-predictor');
+                          setIsSectionsDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-amber-500/10 hover:text-amber-300 text-[#c6c5d8] transition-colors flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FileCheck2 className="w-3.5 h-3.5 text-amber-400" />
+                          <span className="font-medium">ASTM Qualification Audit</span>
+                        </div>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">PDF</span>
+                      </button>
+                    </div>
+
+                    <div className="2xl:hidden">
+                      <button
+                        onClick={() => {
+                          setActivePredictorTab('literature-intel');
+                          handleScrollToSection('physics-predictor');
+                          setIsSectionsDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-[#50d8e9]/10 hover:text-[#50d8e9] text-[#c6c5d8] transition-colors flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-3.5 h-3.5 text-[#50d8e9]" />
+                          <span className="font-medium">Evidence &amp; Research Gaps</span>
+                        </div>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#50d8e9]/20 text-[#50d8e9]">6 Gaps</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Zone 3: Primary Action & Mobile Hamburger */}
@@ -165,10 +289,10 @@ export default function App() {
               Compare Matrix ({compareIds.length})
             </button>
 
-            {/* Mobile Hamburger Button */}
+            {/* Mobile/Tablet Hamburger Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-1.5 text-[#9A9DA3] hover:text-white rounded-lg hover:bg-white/5 transition-colors focus:outline-none"
+              className="lg:hidden p-1.5 text-[#9A9DA3] hover:text-white rounded-lg hover:bg-white/5 transition-colors focus:outline-none"
               aria-label="Toggle navigation menu"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5" />}
@@ -176,9 +300,12 @@ export default function App() {
           </div>
         </div>
 
-        {/* Mobile Dropdown Navigation Drawer */}
+        {/* Mobile/Tablet Dropdown Navigation Drawer */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-b border-[#232426] bg-[#070708]/98 backdrop-blur-xl px-4 py-3 space-y-1.5 shadow-2xl">
+          <div className="lg:hidden border-b border-[#232426] bg-[#070708]/98 backdrop-blur-xl px-4 py-3 space-y-2 shadow-2xl max-h-[85vh] overflow-y-auto">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-[#686b73] px-2 pt-1">
+              Core Analytical Engines
+            </div>
             <button
               onClick={() => {
                 setActivePredictorTab('predictions');
@@ -248,6 +375,10 @@ export default function App() {
               </span>
               <span className="text-[10px] text-[#50d8e9] font-mono">Matrix →</span>
             </button>
+
+            <div className="text-[10px] font-mono uppercase tracking-wider text-[#686b73] px-2 pt-2 border-t border-[#1b1c1e]">
+              Platform Sections &amp; Data
+            </div>
             <button
               onClick={() => {
                 handleScrollToSection('supplementary-datasets');
@@ -265,7 +396,7 @@ export default function App() {
               }}
               className="w-full text-left py-2 px-3 rounded-lg text-sm text-[#9A9DA3] hover:text-white hover:bg-white/5 transition-colors"
             >
-              Synthesis Explorer
+              Synthesis Explorer (20 Alloys)
             </button>
             <button
               onClick={() => {

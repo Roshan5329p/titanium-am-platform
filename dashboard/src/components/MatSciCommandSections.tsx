@@ -969,7 +969,7 @@ export function MatSciCommandSections({
       {/* ==================================================================== */}
       <section
         id="telemetry-section"
-        className="px-4 sm:px-8 border-t border-[#232426] py-20 max-w-[1728px] mx-auto scroll-mt-20 relative"
+        className="w-full max-w-[1728px] overflow-x-hidden px-4 sm:px-8 border-t border-[#232426] py-20 mx-auto scroll-mt-20 relative min-w-0"
       >
         <div className="max-w-[1516px] w-full mx-auto">
           {/* Section Header */}
@@ -1303,7 +1303,7 @@ export function MatSciCommandSections({
       {/* ==================================================================== */}
       <section
         id="architecture-section"
-        className="px-4 sm:px-8 border-t border-[#232426] py-20 max-w-[1728px] mx-auto scroll-mt-20 relative bg-[#050607]"
+        className="w-full max-w-[1728px] overflow-x-hidden px-4 sm:px-8 border-t border-[#232426] py-20 mx-auto scroll-mt-20 relative bg-[#050607] min-w-0"
       >
         <div className="max-w-[1516px] w-full mx-auto">
           {/* Header */}
@@ -1778,7 +1778,7 @@ export function MatSciCommandSections({
       {/* ==================================================================== */}
       <section
         id="insights-section"
-        className="px-4 sm:px-8 border-t border-[#232426] py-20 max-w-[1728px] mx-auto scroll-mt-20 relative"
+        className="w-full max-w-[1728px] overflow-x-hidden px-4 sm:px-8 border-t border-[#232426] py-20 mx-auto scroll-mt-20 relative min-w-0"
       >
         <div className="max-w-[1516px] w-full mx-auto">
           {/* Header */}

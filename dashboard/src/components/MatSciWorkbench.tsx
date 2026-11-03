@@ -181,7 +181,7 @@ export function MatSciWorkbench({
   };
 
   return (
-    <div id="workbench-anchor" className="w-full max-w-[1640px] mx-auto px-4 sm:px-8 pt-6 pb-20 scroll-mt-20">
+    <div id="workbench-anchor" className="w-full max-w-[1640px] mx-auto px-4 sm:px-8 pt-6 pb-20 scroll-mt-20 overflow-x-hidden min-w-0">
       {/* Sub-Header Telemetry & Subtitle Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-[#232426]">
         <div>
@@ -280,9 +280,9 @@ export function MatSciWorkbench({
       </div>
 
       {/* Main Split Workbench: Left Material List + Right Material Explorer */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start min-w-0 w-full">
         {/* LEFT PANE: Scrollable Material Cards (4 cols on lg) */}
-        <div className="lg:col-span-4 flex flex-col">
+        <div className="lg:col-span-4 min-w-0 flex flex-col">
           {/* Left Header */}
           <div className="flex justify-between items-baseline text-xs text-[#9A9DA3] mb-3 px-0.5">
             <span className="font-mono-data tabular-nums">
@@ -393,7 +393,7 @@ export function MatSciWorkbench({
         </div>
 
         {/* RIGHT PANE: Material Explorer / Creation Parameters & Property Profiles (8 cols on lg) */}
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-8 min-w-0 max-w-full">
           {!selectedMaterial ? (
             /* EMPTY / DEFAULT EXPLORER STATE (Matches image_f48a1e5a.png + Cinematic Precision schematics) */
             <div className="space-y-6">
