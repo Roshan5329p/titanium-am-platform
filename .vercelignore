@@ -13,7 +13,7 @@ variant_properties_wide.csv
 sources.txt
 
 # Java Backend (Runs locally, not needed on Vercel static hosting)
-src/
+/src/
 bin/
 run*.bat
 run*.ps1
