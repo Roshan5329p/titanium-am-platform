@@ -129,6 +129,7 @@ interface ParamNumberInputProps {
   min?: number;
   sliderStep?: number;
   title?: string;
+  isHighlighted?: boolean;
 }
 
 const ParamNumberInput = React.memo(function ParamNumberInput({
@@ -140,6 +141,7 @@ const ParamNumberInput = React.memo(function ParamNumberInput({
   min = 0,
   sliderStep,
   title,
+  isHighlighted = false,
 }: ParamNumberInputProps) {
   const [localStr, setLocalStr] = useState<string>(String(value));
   const [isFocused, setIsFocused] = useState(false);
@@ -183,10 +185,17 @@ const ParamNumberInput = React.memo(function ParamNumberInput({
   const currentStep = sliderStep ?? (dynamicSliderMax >= 100000 ? 500 : dynamicSliderMax >= 10000 ? 50 : value < 10 ? 0.01 : 1);
 
   return (
-    <div className="space-y-1">
+    <div className={`space-y-1 transition-all rounded-lg p-1.5 ${isHighlighted ? 'bg-[#50d8e9]/10 ring-2 ring-[#50d8e9] shadow-[0_0_15px_rgba(80,216,233,0.3)] animate-pulse' : ''}`}>
       <div className="flex items-center justify-between text-xs">
-        <span className="text-[#a5b6ca] flex items-center gap-1">{label}</span>
-        <div className="flex items-center gap-1 bg-[#0b1017] border border-[#202e40] hover:border-[#385375] focus-within:border-[#50d8e9] focus-within:ring-1 focus-within:ring-[#50d8e9]/30 rounded-md px-1.5 py-0.5 transition-all">
+        <span className="text-[#a5b6ca] flex items-center gap-1.5">
+          {label}
+          {isHighlighted && (
+            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-[#50d8e9] text-black shadow-sm">
+              Copilot
+            </span>
+          )}
+        </span>
+        <div className={`flex items-center gap-1 bg-[#0b1017] border ${isHighlighted ? 'border-[#50d8e9] ring-1 ring-[#50d8e9]' : 'border-[#202e40]'} hover:border-[#385375] focus-within:border-[#50d8e9] focus-within:ring-1 focus-within:ring-[#50d8e9]/30 rounded-md px-1.5 py-0.5 transition-all`}>
           <input
             type="number"
             min={0}
@@ -317,6 +326,8 @@ export function MatSciPredictor({
     onTabChange?.(tab);
   };
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [copilotBanner, setCopilotBanner] = useState<string | null>(null);
+  const [highlightedSlider, setHighlightedSlider] = useState<'all' | 'laserPower' | 'scanSpeed' | 'hatchSpacing' | 'layerThickness' | 'preheatTemp' | null>(null);
 
 
   // Bontha et al. (2006 JMPT & 2009 MSEA) & KU Leuven (Coen et al. 2022) Melt Pool State
@@ -1181,86 +1192,109 @@ export function MatSciPredictor({
               </div>
 
               {/* Process Parameters Control Panel (Write up to 1,000,000 units or drag sliders) */}
-              <div className="flex items-center justify-between text-[11px] border-b border-[#1b2533] pb-1.5 mb-2">
-                <span className="font-semibold text-white flex items-center gap-1.5">
-                  <span>Process Variables</span>
-                </span>
-                <span className="text-[10px] text-[#50d8e9] font-mono bg-[#50d8e9]/10 px-1.5 py-0.5 rounded border border-[#50d8e9]/25">
-                  Write up to 1,000,000
-                </span>
+              <div id="process-sliders-panel" className="scroll-mt-28 space-y-2">
+                {/* Copilot Applied Values Notice Banner */}
+                {copilotBanner && (
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-[#50d8e9]/20 via-[#102336] to-[#0d2a45] border-2 border-[#50d8e9] text-[#50d8e9] shadow-[0_0_25px_rgba(80,216,233,0.35)] animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-[#50d8e9] animate-pulse" />
+                        <span className="font-bold text-white text-xs">Values Applied from MatSci Copilot!</span>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#50d8e9] text-black font-bold">Active</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-[#c5ecf8] bg-[#07131f] p-1.5 rounded border border-[#50d8e9]/30">
+                      {copilotBanner}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between text-[11px] border-b border-[#1b2533] pb-1.5 mb-2">
+                  <span className="font-semibold text-white flex items-center gap-1.5">
+                    <span>Process Variables</span>
+                  </span>
+                  <span className="text-[10px] text-[#50d8e9] font-mono bg-[#50d8e9]/10 px-1.5 py-0.5 rounded border border-[#50d8e9]/25">
+                    Write up to 1,000,000
+                  </span>
+                </div>
+
+                {/* Slider 1: Laser Power P */}
+                <ParamNumberInput
+                  label={<>Laser Power <i>P</i></>}
+                  value={laserPower}
+                  unit="W"
+                  onChange={setLaserPower}
+                  sliderDefaultMax={bonthaProcessScale === 'large-scale' || laserPower > 4500 ? 30000 : selectedProcessId === 'waam' ? 4500 : selectedProcessId === 'ded-laser' ? 2500 : 500}
+                  min={0}
+                  sliderStep={laserPower > 1000 ? 50 : 5}
+                  title="Laser Power P (write up to 1,000,000 W)"
+                  isHighlighted={highlightedSlider === 'all' || highlightedSlider === 'laserPower'}
+                />
+
+                {/* Slider 2: Scan Speed v */}
+                <ParamNumberInput
+                  label={<>Scan Speed <i>v</i></>}
+                  value={scanSpeed}
+                  unit="mm/s"
+                  onChange={setScanSpeed}
+                  sliderDefaultMax={2500}
+                  min={0}
+                  sliderStep={scanSpeed < 50 ? 0.01 : 1}
+                  title="Scan Speed v (write up to 1,000,000 mm/s)"
+                  isHighlighted={highlightedSlider === 'all' || highlightedSlider === 'scanSpeed'}
+                />
+
+                {/* Slider 3: Hatch Spacing h */}
+                <ParamNumberInput
+                  label={<>Hatch Spacing <i>h</i></>}
+                  value={hatchSpacing}
+                  unit="μm"
+                  onChange={setHatchSpacing}
+                  sliderDefaultMax={selectedProcessId === 'waam' ? 4000 : 250}
+                  min={0}
+                  sliderStep={1}
+                  title="Hatch Spacing h (write up to 1,000,000 μm)"
+                  isHighlighted={highlightedSlider === 'all' || highlightedSlider === 'hatchSpacing'}
+                />
+
+                {/* Slider 4: Layer Thickness t */}
+                <ParamNumberInput
+                  label={<>Layer Thickness <i>t</i></>}
+                  value={layerThickness}
+                  unit="μm"
+                  onChange={setLayerThickness}
+                  sliderDefaultMax={selectedProcessId === 'waam' ? 2000 : 150}
+                  min={0}
+                  sliderStep={1}
+                  title="Layer Thickness t (write up to 1,000,000 μm)"
+                  isHighlighted={highlightedSlider === 'all' || highlightedSlider === 'layerThickness'}
+                />
+
+                {/* Slider 5: Spot Diameter ds */}
+                <ParamNumberInput
+                  label={<>Laser Spot Diameter <i>d<sub>s</sub></i></>}
+                  value={spotDiameter}
+                  unit="μm"
+                  onChange={setSpotDiameter}
+                  sliderDefaultMax={selectedProcessId === 'waam' ? 3500 : 300}
+                  min={0}
+                  sliderStep={1}
+                  title="Laser Spot Diameter ds (write up to 1,000,000 μm)"
+                />
+
+                {/* Slider 6: Build Plate Preheat T0 */}
+                <ParamNumberInput
+                  label={<>Build Plate Preheat <i>T</i><sub>0</sub></>}
+                  value={preheatTemp}
+                  unit="°C"
+                  onChange={setPreheatTemp}
+                  sliderDefaultMax={600}
+                  min={0}
+                  sliderStep={5}
+                  title="Build Plate Preheat T0 (write up to 1,000,000 °C)"
+                  isHighlighted={highlightedSlider === 'all' || highlightedSlider === 'preheatTemp'}
+                />
               </div>
-
-              {/* Slider 1: Laser Power P */}
-              <ParamNumberInput
-                label={<>Laser Power <i>P</i></>}
-                value={laserPower}
-                unit="W"
-                onChange={setLaserPower}
-                sliderDefaultMax={bonthaProcessScale === 'large-scale' || laserPower > 4500 ? 30000 : selectedProcessId === 'waam' ? 4500 : selectedProcessId === 'ded-laser' ? 2500 : 500}
-                min={0}
-                sliderStep={laserPower > 1000 ? 50 : 5}
-                title="Laser Power P (write up to 1,000,000 W)"
-              />
-
-              {/* Slider 2: Scan Speed v */}
-              <ParamNumberInput
-                label={<>Scan Speed <i>v</i></>}
-                value={scanSpeed}
-                unit="mm/s"
-                onChange={setScanSpeed}
-                sliderDefaultMax={2500}
-                min={0}
-                sliderStep={scanSpeed < 50 ? 0.01 : 1}
-                title="Scan Speed v (write up to 1,000,000 mm/s)"
-              />
-
-              {/* Slider 3: Hatch Spacing h */}
-              <ParamNumberInput
-                label={<>Hatch Spacing <i>h</i></>}
-                value={hatchSpacing}
-                unit="μm"
-                onChange={setHatchSpacing}
-                sliderDefaultMax={selectedProcessId === 'waam' ? 4000 : 250}
-                min={0}
-                sliderStep={1}
-                title="Hatch Spacing h (write up to 1,000,000 μm)"
-              />
-
-              {/* Slider 4: Layer Thickness t */}
-              <ParamNumberInput
-                label={<>Layer Thickness <i>t</i></>}
-                value={layerThickness}
-                unit="μm"
-                onChange={setLayerThickness}
-                sliderDefaultMax={selectedProcessId === 'waam' ? 2000 : 150}
-                min={0}
-                sliderStep={1}
-                title="Layer Thickness t (write up to 1,000,000 μm)"
-              />
-
-              {/* Slider 5: Spot Diameter ds */}
-              <ParamNumberInput
-                label={<>Laser Spot Diameter <i>d<sub>s</sub></i></>}
-                value={spotDiameter}
-                unit="μm"
-                onChange={setSpotDiameter}
-                sliderDefaultMax={selectedProcessId === 'waam' ? 3500 : 300}
-                min={0}
-                sliderStep={1}
-                title="Laser Spot Diameter ds (write up to 1,000,000 μm)"
-              />
-
-              {/* Slider 6: Build Plate Preheat T0 */}
-              <ParamNumberInput
-                label={<>Build Plate Preheat <i>T</i><sub>0</sub></>}
-                value={preheatTemp}
-                unit="°C"
-                onChange={setPreheatTemp}
-                sliderDefaultMax={600}
-                min={0}
-                sliderStep={5}
-                title="Build Plate Preheat T0 (write up to 1,000,000 °C)"
-              />
             </div>
 
             {/* 4. Post-Processing */}
@@ -5441,6 +5475,34 @@ export function MatSciPredictor({
           if (params.hatchSpacingUm !== undefined) setHatchSpacing(params.hatchSpacingUm);
           if (params.layerThicknessUm !== undefined) setLayerThickness(params.layerThicknessUm);
           if (params.preheatTempC !== undefined) setPreheatTemp(params.preheatTempC);
+
+          const parts = [
+            params.laserPowerW ? `Laser Power = ${params.laserPowerW} W` : null,
+            params.scanSpeedMmS ? `Scan Speed = ${params.scanSpeedMmS} mm/s` : null,
+            params.hatchSpacingUm ? `Hatch = ${params.hatchSpacingUm} μm` : null,
+            params.layerThicknessUm ? `Layer = ${params.layerThicknessUm} μm` : null,
+            params.preheatTempC ? `Preheat = ${params.preheatTempC} °C` : null,
+          ].filter(Boolean);
+
+          setCopilotBanner(parts.join(' • '));
+          setHighlightedSlider('all');
+
+          setTimeout(() => {
+            setCopilotBanner(null);
+            setHighlightedSlider(null);
+          }, 6000);
+        }}
+        onScrollToSliders={() => {
+          const el = document.getElementById('process-sliders-panel');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }}
+        onScrollToWorkbench={() => {
+          const el = document.getElementById('workbench-anchor');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
         }}
       />
     </section>
