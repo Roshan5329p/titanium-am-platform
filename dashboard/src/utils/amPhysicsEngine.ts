@@ -419,6 +419,51 @@ export interface DepthSolidificationPoint {
 export type BonthaGeometryMode = '3d-bulky' | '2d-thin-wall';
 export type BonthaPhysicsMode = 'rosenthal' | 'nonlinear-fem';
 
+/**
+ * Standard ASTM E140 Table 1 Hardness Conversion (Vickers HV to Rockwell C HRC)
+ * Calibrated across 240 HV (~20 HRC) to 940 HV (68 HRC) using standard piecewise
+ * linear interpolation between empirical ASTM E140 benchmark tie-points.
+ */
+export function hvToRockwellHRC(hv: number): string {
+  if (!Number.isFinite(hv) || hv < 240) return '—';
+  const astmTable = [
+    { hv: 240, hrc: 20.3 },
+    { hv: 260, hrc: 24.0 },
+    { hv: 280, hrc: 27.1 },
+    { hv: 300, hrc: 29.8 },
+    { hv: 320, hrc: 32.2 },
+    { hv: 340, hrc: 34.4 },
+    { hv: 360, hrc: 36.6 },
+    { hv: 380, hrc: 38.8 },
+    { hv: 400, hrc: 40.8 },
+    { hv: 420, hrc: 42.7 },
+    { hv: 440, hrc: 44.5 },
+    { hv: 460, hrc: 46.1 },
+    { hv: 480, hrc: 47.7 },
+    { hv: 500, hrc: 49.1 },
+    { hv: 550, hrc: 52.4 },
+    { hv: 600, hrc: 55.2 },
+    { hv: 650, hrc: 57.8 },
+    { hv: 700, hrc: 60.1 },
+    { hv: 750, hrc: 62.1 },
+    { hv: 800, hrc: 64.0 },
+    { hv: 850, hrc: 65.6 },
+    { hv: 900, hrc: 67.0 },
+    { hv: 940, hrc: 68.0 },
+  ];
+  if (hv >= 940) return '68 HRC';
+  for (let i = 0; i < astmTable.length - 1; i++) {
+    const p1 = astmTable[i];
+    const p2 = astmTable[i + 1];
+    if (hv >= p1.hv && hv <= p2.hv) {
+      const frac = (hv - p1.hv) / (p2.hv - p1.hv);
+      const val = Math.round(p1.hrc + frac * (p2.hrc - p1.hrc));
+      return `${val} HRC`;
+    }
+  }
+  return '—';
+}
+
 export interface BonthaSolidificationResult {
   geometryMode: BonthaGeometryMode;
   physicsMode: BonthaPhysicsMode;
@@ -1396,6 +1441,7 @@ export function calculateAmPredictions(
   const ballingRatio = (meltPoolLengthUm / meltPoolWidthUm) / Math.PI;
 
   // Regime Determination
+  const poolAspectRatio = meltPoolWidthUm > 0 ? meltPoolDepthUm / meltPoolWidthUm : 0.52;
   let regime: ProcessRegime = 'conduction';
   let regimeLabel = 'Conduction mode — fully dense';
   let regimeDescription = 'Stable, optimal melt pool dynamics with high relative density and minimal porosity.';
@@ -1404,9 +1450,9 @@ export function calculateAmPredictions(
     regime = 'lack-of-fusion';
     regimeLabel = 'Lack of Fusion (LoF) detected';
     regimeDescription = 'Melt pool depth is insufficient to penetrate underlying layer. Increase laser power or decrease scan speed.';
-  } else if (keyholeRatio > 1.1) {
+  } else if (keyholeRatio > 1.0 || poolAspectRatio > 0.85) {
     regime = 'keyhole';
-    regimeLabel = 'Keyhole threshold exceeded';
+    regimeLabel = 'Keyholing Porosity Regime';
     regimeDescription = 'Excessive localized energy density produces deep vapor cavity prone to collapsing and trapping gas pores.';
   } else if (ballingRatio > 1.05) {
     regime = 'balling';
@@ -1415,7 +1461,11 @@ export function calculateAmPredictions(
   }
 
   // 8. Relative Density (%) and Porosity (%)
-  let relativeDensity = 99.85 - (lackOfFusionIndex > 1 ? (lackOfFusionIndex - 1) * 8.5 : 0) - (keyholeRatio > 1 ? (keyholeRatio - 1) * 4.2 : 0) - (ballingRatio > 1 ? (ballingRatio - 1) * 6.0 : 0);
+  const keyholeSeverity = Math.max(
+    keyholeRatio > 1 ? keyholeRatio - 1 : 0,
+    poolAspectRatio > 0.85 ? (poolAspectRatio - 0.85) / 0.85 : 0
+  );
+  let relativeDensity = 99.85 - (lackOfFusionIndex > 1 ? (lackOfFusionIndex - 1) * 8.5 : 0) - (keyholeSeverity > 0 ? keyholeSeverity * 5.5 + 0.3 : 0) - (ballingRatio > 1 ? (ballingRatio - 1) * 6.0 : 0);
   relativeDensity = Math.max(88.0, Math.min(99.95, relativeDensity));
   const porosityPct = parseFloat((100 - relativeDensity).toFixed(3));
 
@@ -1468,10 +1518,8 @@ export function calculateAmPredictions(
   // Designated Unified Primary Hardness across all KPI cards:
   const primaryHardnessHV = gprHV;
 
-  // Rockwell C conversion (ASTM E140 standard for HV > 240)
-  const rockwellHRC = primaryHardnessHV >= 240
-    ? `${Math.max(20, Math.min(68, Math.round(100 - 15000 / primaryHardnessHV)))} HRC`
-    : '—';
+  // Rockwell C conversion (Standard ASTM E140 piecewise linear conversion)
+  const rockwellHRC = hvToRockwellHRC(primaryHardnessHV);
 
   // Alloy-specific Tabor UTS correlation:
   // True plastic constraint factor calibrated per alloy metallurgy = props.nominalUTS / props.baseHardnessHV
@@ -1483,7 +1531,7 @@ export function calculateAmPredictions(
     {
       modelName: 'Analytical (Hall-Petch + Rosenthal)',
       predictedHV: analyticalHV,
-      rockwellHRC: analyticalHV >= 240 ? `${Math.round(100 - 15000 / analyticalHV)} HRC` : '—',
+      rockwellHRC: hvToRockwellHRC(analyticalHV),
       expectedErrorHV: 8.2,
       closenessPct: 96.8,
       r2Score: 0.91,
@@ -1491,7 +1539,7 @@ export function calculateAmPredictions(
     {
       modelName: 'Random Forest (Calibrated)',
       predictedHV: rfHV,
-      rockwellHRC: rfHV >= 240 ? `${Math.round(100 - 15000 / rfHV)} HRC` : '—',
+      rockwellHRC: hvToRockwellHRC(rfHV),
       expectedErrorHV: 6.4,
       closenessPct: 97.5,
       r2Score: 0.94,
@@ -1499,7 +1547,7 @@ export function calculateAmPredictions(
     {
       modelName: 'Gradient Boosting (XGBoost)',
       predictedHV: gbtHV,
-      rockwellHRC: gbtHV >= 240 ? `${Math.round(100 - 15000 / gbtHV)} HRC` : '—',
+      rockwellHRC: hvToRockwellHRC(gbtHV),
       expectedErrorHV: 5.9,
       closenessPct: 97.9,
       r2Score: 0.95,
@@ -1507,7 +1555,7 @@ export function calculateAmPredictions(
     {
       modelName: 'Support Vector Machine (RBF-SVR)',
       predictedHV: svmHV,
-      rockwellHRC: svmHV >= 240 ? `${Math.round(100 - 15000 / svmHV)} HRC` : '—',
+      rockwellHRC: hvToRockwellHRC(svmHV),
       expectedErrorHV: 5.6,
       closenessPct: 98.1,
       r2Score: 0.96,
@@ -1515,7 +1563,7 @@ export function calculateAmPredictions(
     {
       modelName: 'Hybrid Physics-GPR (Recommended)',
       predictedHV: gprHV,
-      rockwellHRC: gprHV >= 240 ? `${Math.round(100 - 15000 / gprHV)} HRC` : '—',
+      rockwellHRC: hvToRockwellHRC(gprHV),
       expectedErrorHV: 5.1,
       closenessPct: 98.4,
       r2Score: 0.97,
@@ -1523,7 +1571,7 @@ export function calculateAmPredictions(
     {
       modelName: 'Weighted Ensemble',
       predictedHV: ensembleHV,
-      rockwellHRC: ensembleHV >= 240 ? `${Math.round(100 - 15000 / ensembleHV)} HRC` : '—',
+      rockwellHRC: hvToRockwellHRC(ensembleHV),
       expectedErrorHV: 4.8,
       closenessPct: 98.7,
       r2Score: 0.98,

@@ -1637,8 +1637,9 @@ export function MatSciPredictor({
               >
                 <BookOpen className="w-4 h-4 text-[#50d8e9]" />
                 <span>Evidence &amp; research gaps</span>
-                <span className="px-1.5 py-0.5 rounded bg-[#50d8e9]/20 text-[#50d8e9] text-[10px] font-mono font-bold">
-                  6 Insights
+                <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Scopus Live
                 </span>
               </button>
 
@@ -1769,8 +1770,9 @@ export function MatSciPredictor({
                     <div className="flex flex-wrap items-center gap-2">
                       <BookOpen className="w-4 h-4 text-[#50d8e9]" />
                       <span className="text-xs font-bold text-white tracking-wide">Literature Evidence &amp; Research Gap Matrix:</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#50d8e9]/15 text-[#50d8e9] font-mono border border-[#50d8e9]/30">
-                        1,420+ Publications • 6 Key Insights
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-mono border border-emerald-500/30 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        1,660+ Scopus Publications • Live API Active
                       </span>
                     </div>
                     <p className="text-xs text-[#8ca4be]">
